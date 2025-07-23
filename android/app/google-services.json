@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "936644218805",
+    "project_id": "flexipay-f1be2",
+    "storage_bucket": "flexipay-f1be2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:936644218805:android:9430cc215d7197e8c593fc",
+        "android_client_info": {
+          "package_name": "com.example.flexipay"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBIB1cnipHpxbhAU1ZmnFK5ZfrPUh_FfhA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

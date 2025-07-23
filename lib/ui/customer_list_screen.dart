@@ -1,0 +1,372 @@
+import 'package:flexipay/data/models/customer_model.dart';
+import 'package:flexipay/services/customer_services.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'forms/customer_form.dart';
+import 'forms/item_form.dart';
+import 'forms/transaction_form.dart';
+import 'edit_customer_screen.dart';
+import 'item.dart'; // Ensure this maps correctly to your ItemsDialog
+
+class CustomerListScreen extends StatefulWidget {
+  const CustomerListScreen({Key? key}) : super(key: key);
+
+  @override
+  State<CustomerListScreen> createState() => _CustomerListScreenState();
+}
+
+class _CustomerListScreenState extends State<CustomerListScreen> {
+  final _svc = CustomerService();
+  final TextEditingController _searchController = TextEditingController();
+
+  List<CustomerModel> _customers = [];
+  List<CustomerModel> _filteredCustomers = [];
+
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+    _searchController.addListener(() {
+      _filterCustomers(_searchController.text);
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final list = await _svc.getAllCustomers();
+    setState(() {
+      _customers = list;
+      _filteredCustomers = list;
+      _loading = false;
+    });
+  }
+
+  void _filterCustomers(String query) {
+    final lowerQuery = query.toLowerCase();
+    setState(() {
+      _filteredCustomers = _customers.where((c) {
+        return (c.fullName ?? '').toLowerCase().contains(lowerQuery) ||
+            (c.fatherName ?? '').toLowerCase().contains(lowerQuery) ||
+            (c.phoneNumber ?? '').toLowerCase().contains(lowerQuery) ||
+            (c.fullAddress ?? '').toLowerCase().contains(lowerQuery);
+      }).toList();
+    });
+  }
+
+  double _calculateBalance(CustomerModel c) {
+    return c.items?.fold(0.0, (sum, it) => sum! + (it.remainingAmount ?? 0)) ?? 0;
+  }
+
+  void _showDetails(CustomerModel customer) {
+    final balance = _calculateBalance(customer);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          top: 16,
+          left: 16,
+          right: 16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade400,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            Text(
+              customer.fullName ?? '–',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _detailRow('Father’s Name', customer.fatherName),
+            _detailRow('Phone', customer.phoneNumber),
+            _detailRow('Address', customer.fullAddress),
+            _detailRow('Balance', 'PKR ${balance.toStringAsFixed(0)}'),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                icon: const Icon(Icons.list),
+                label: const Text('View Items'),
+                onPressed: () {
+                  Navigator.pop(context);
+                  showDialog(
+                    context: context,
+                    builder: (_) => ItemsDialog(
+                      customer: customer,
+                      customerId: customer.id!,
+                    ),
+                  );
+                },
+              ),
+            ),
+            const Divider(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.payments),
+                  label: const Text('Receive Installment'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TransactionForm(customerId: customer.id!),
+                      ),
+                    );
+                  },
+                ),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Edit'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EditCustomerScreen(customer: customer),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 100),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Expanded(
+            child: Text(
+              value ?? '–',
+              textAlign: TextAlign.end,
+              style: const TextStyle(fontWeight: FontWeight.w400),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteCustomer(CustomerModel c) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Customer'),
+        content: Text('Delete ${c.fullName}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await _svc.deleteCustomer(c);
+      _load();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isSmall = width < 360;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Customer List')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search customers...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    _filterCustomers('');
+                  },
+                )
+                    : null,
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: _filteredCustomers.length,
+                itemBuilder: (ctx, i) {
+                  final c = _filteredCustomers[i];
+                  final bal = _calculateBalance(c);
+                  return Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      onTap: () => _showDetails(c),
+                      title: Text(
+                        c.fullName ?? 'Unnamed',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      subtitle: Text(
+                        c.fullAddress ?? '-',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      trailing: FutureBuilder<Map<String, double>>(
+                        future: CustomerService().calculateBalanceAndDue(c.id!),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const SizedBox(
+                              width: 50,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            );
+                          } else if (snapshot.hasError) {
+                            return const Text('Error');
+                          } else {
+                            final data = snapshot.data ?? {'balance': 0.0, 'dueAmount': 0.0};
+                            final balance = data['balance']!;
+                            final due = data['dueAmount']!;
+                            final roundedDue = double.parse(due.toStringAsFixed(2));
+
+                            late final String dueLabel;
+                            late final Color dueColor;
+
+                            if (roundedDue > 0) {
+                              dueLabel = 'Due';
+                              dueColor = Colors.redAccent;
+                            } else if (roundedDue < 0) {
+                              dueLabel = 'Advance';
+                              dueColor = Colors.green;
+                            } else {
+                              dueLabel = 'Clear';
+                              dueColor = Colors.grey;
+                            }
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: dueColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '$dueLabel: PKR ${roundedDue.abs().toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: dueColor,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blueGrey[50],
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    'Balance: PKR ${balance.toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CustomerForm()),
+          ).then((_) => _load());
+        },
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
