@@ -114,7 +114,7 @@ class _ItemFormState extends State<ItemForm> {
                         const SizedBox(width: 8),
                         const Expanded(child: Text("Total Price:", style: TextStyle(fontSize: 15))),
                         Text(
-                          "PKR ${remainingAmount.toStringAsFixed(2)}",
+                          "PKR ${remainingAmount.toStringAsFixed(0)}",
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ],
@@ -174,9 +174,10 @@ class _ItemFormState extends State<ItemForm> {
                   itemName: itemNameController.text.trim(),
                   itemDescription: itemDescriptionController.text.trim(),
                   actualPrice: actual,
-                  totalPaid: totalPrice,
+                  installmentTotalPrice: totalPrice,
                   remainingAmount: totalPrice,
                   installmentPerMonth: monthly,
+                  totalPaid: 0.0
                 );
 
                 CustomerService().addItemToCustomer(widget.customerId, item);

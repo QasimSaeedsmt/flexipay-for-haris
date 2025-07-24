@@ -2,6 +2,7 @@ import 'package:flexipay/data/models/customer_model.dart';
 import 'package:flexipay/services/customer_services.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'forms/adjustment_form.dart';
 import 'forms/customer_form.dart';
 import 'forms/item_form.dart';
 import 'forms/transaction_form.dart';
@@ -149,6 +150,34 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                         builder: (_) => EditCustomerScreen(customer: customer),
                       ),
                     );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 100),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.adjust),
+                  label: const Text('Adjustments'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AdjustmentForm(customerId: customer.id!),
+                      ),
+                    );
+                  },
+                ),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.delete),
+                  label: const Text('Delete'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _deleteCustomer(customer);
                   },
                 ),
               ],
@@ -311,44 +340,54 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                               dueColor = Colors.grey;
                             }
 
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: dueColor.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    '$dueLabel: PKR ${roundedDue.abs().toStringAsFixed(0)}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: dueColor,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blueGrey[50],
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    'Balance: PKR ${balance.toStringAsFixed(0)}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            );
+                              return LayoutBuilder(
+                                builder: (context, constraints) {
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Flexible(
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: dueColor.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            '$dueLabel: PKR ${roundedDue.abs().toStringAsFixed(0)}',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: dueColor,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Flexible(
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blueGrey[50],
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            'Balance: PKR ${balance.toStringAsFixed(0)}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            }
+
                           }
-                        },
+
                       ),
                     ),
                   );

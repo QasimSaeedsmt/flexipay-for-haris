@@ -4,8 +4,9 @@ import 'package:flexipay/services/customer_services.dart';
 import 'package:flexipay/ui/customer_list_screen.dart';
 import 'package:flexipay/ui/transaction_history_screen.dart';
 import 'package:flexipay/data/models/transaction_model.dart';
-import 'package:fl_chart/fl_chart.dart';
-
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;         // 👈 This is the important line
+import 'package:printing/printing.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
   @override
@@ -45,8 +46,29 @@ class _HomeScreenState extends State<HomeScreen> {
     final customers = await _svc.getAllCustomers();
     List<TransactionModel> allTxns = [];
 
+    double bal = 0, due = 0, adv = 0, recv = 0;
+
     for (var c in customers) {
+      final balanceData = await _svc.calculateBalanceAndDue(c.id!);
       final txns = await _svc.getTransactions(c.id!);
+      final monthTxns = await _svc.getTransactionsForMonth(c.id!, monthKey);
+
+      // Update summary values
+      final balance = balanceData['balance'] ?? 0.0;
+      final dueAmt = balanceData['dueAmount'] ?? 0.0;
+
+      bal += balance;
+      if (dueAmt > 0) {
+        due += dueAmt;
+      } else {
+        adv += -dueAmt;
+      }
+
+      for (var t in monthTxns) {
+        recv += t.transactionAmount ?? 0;
+      }
+
+      // Collect all transactions and assign customerId for later lookup
       for (var t in txns) {
         t.customerId = c.id;
         allTxns.add(t);
@@ -58,6 +80,10 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _customerNameMap = nameMap;
       _recentTxns = allTxns.take(10).toList();
+      _totalBalance = bal;
+      _totalDue = due;
+      _totalAdvance = adv;
+      _totalReceivedThisMonth = recv;
       _loading = false;
     });
   }
@@ -84,49 +110,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildBarChart() {
-    return Container(
-      height: 200,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blueGrey[50],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: BarChart(
-        BarChartData(
-          barGroups: _monthlyData.asMap().entries.map((e) {
-            final i = e.key;
-            final m = e.value;
-            return BarChartGroupData(
-              x: i,
-              barRods: [
-                BarChartRodData(toY: (m['amount'] as double) / 1000, color: Colors.indigo, width: 16),
-              ],
-            );
-          }).toList(),
-          titlesData: FlTitlesData(
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(showTitles: true, interval: 5, reservedSize: 40),
-            ),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (value, _) {
-                  final idx = value.toInt();
-                  if (idx >= 0 && idx < _monthlyData.length) {
-                    return Text(_monthlyData[idx]['month']);
-                  }
-                  return const Text('');
-                },
-              ),
-            ),
-          ),
-          borderData: FlBorderData(show: false),
-          gridData: FlGridData(show: false),
-        ),
-      ),
-    );
-  }
 
   Widget _buildRecentTxns() {
     return Column(
@@ -139,8 +122,128 @@ class _HomeScreenState extends State<HomeScreen> {
           title: Text(_customerNameMap[t.customerId] ?? 'Unknown Customer'),
           subtitle: Text(DateFormat.yMMMd().add_jm().format(t.timestamp!)),
           trailing: Text("PKR ${t.transactionAmount?.toStringAsFixed(0) ?? '0'}"),
+          onTap: () => _showTransactionDetails(t),
         )),
       ],
+    );
+  }
+  void _showTransactionDetails(TransactionModel txn) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Transaction Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _detailRow('Customer', _customerNameMap[txn.customerId] ?? 'Unknown'),
+            _detailRow('Type', txn.transactionType),
+            _detailRow('Item', txn.itemName),
+            _detailRow('Amount', 'PKR ${txn.transactionAmount?.toStringAsFixed(2) ?? "0.00"}'),
+            _detailRow('Txn Month', txn.transactionMonth),
+            _detailRow('Date', DateFormat.yMMMMd().add_jm().format(txn.timestamp!)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _generateSingleTransactionPdf(txn);
+            },
+            icon: const Icon(Icons.picture_as_pdf),
+            label: const Text('Export PDF'),
+          ),
+        ],
+      ),
+    );
+  }
+  Future<void> _generateSingleTransactionPdf(TransactionModel txn) async {
+    final pdf = pw.Document();
+
+    final customerName = _customerNameMap[txn.customerId] ?? 'Unknown';
+
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) => pw.Container(
+          padding: const pw.EdgeInsets.all(24),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('Transaction Receipt',
+                  style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 20),
+              pw.Text('Customer: $customerName', style: pw.TextStyle(fontSize: 16)),
+              pw.Divider(),
+              _pdfRow('Transaction Type', txn.transactionType),
+              _pdfRow('Item Name', txn.itemName),
+              _pdfRow('Transaction Month', txn.transactionMonth),
+              _pdfRow('Amount', 'Rs ${txn.transactionAmount?.toStringAsFixed(0) ?? "0.00"}'),
+              // _pdfRow('Entry Time', txn.entryTime),
+              _pdfRow('Date & Time', DateFormat.yMMMMd().add_jm().format(txn.timestamp!)),
+              pw.SizedBox(height: 24),
+              pw.Text('Thank you for the trust!',
+                  style: pw.TextStyle(fontStyle: pw.FontStyle.italic)),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await Printing.sharePdf(
+      bytes: await pdf.save(),
+      filename: 'transaction_${txn.transactionMonth}.pdf',
+    );
+  }
+
+  pw.Widget _pdfRow(String label, String? value) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.grey100,
+        borderRadius: pw.BorderRadius.circular(4),
+      ),
+      margin: const pw.EdgeInsets.only(bottom: 6),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
+        children: [
+          pw.Text(
+            "$label: ",
+            style: pw.TextStyle(
+              fontSize: 11,
+              color: PdfColors.grey800,
+              fontWeight: pw.FontWeight.normal,
+            ),
+          ),
+          pw.SizedBox(width: 6),
+          pw.Expanded(
+            child: pw.Text(
+              value ?? '-',
+              style: pw.TextStyle(
+                fontSize: 11,
+                color: PdfColors.blueGrey900,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("$label: ", style: const TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(child: Text(value ?? "-", softWrap: true)),
+        ],
+      ),
     );
   }
 
@@ -205,7 +308,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              _buildBarChart(),
               const SizedBox(height: 24),
               _buildRecentTxns(),
 

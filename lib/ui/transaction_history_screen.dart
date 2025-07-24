@@ -50,16 +50,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       if (_selectedCustomer != null && t.customerId != _selectedCustomer!.id) {
         return false;
       }
-      if (_filterMonth != null) {
-        final mKey = DateFormat('yyyy-MM').format(_filterMonth!);
-        if (t.transactionMonth != mKey) return false;
-      }
-      if (_filterRange != null && t.timestamp != null) {
-        final ts = t.timestamp!;
-        if (ts.isBefore(_filterRange!.start) || ts.isAfter(_filterRange!.end)) {
-          return false;
-        }
-      }
       return true;
     }).toList()
       ..sort((a, b) => b.timestamp!.compareTo(a.timestamp!));
@@ -73,89 +63,131 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(24),
+      footer: (context) => pw.Container(
+        alignment: pw.Alignment.centerRight,
+        margin: const pw.EdgeInsets.only(top: 20),
+        child: pw.Text(
+          'Page ${context.pageNumber} of ${context.pagesCount}',
+          style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+        ),
+      ),
       build: (context) => [
-        pw.Text(
-          single != null ? 'Transaction Details' : 'Transaction Report',
-          style: pw.TextStyle(fontSize: 26, fontWeight: pw.FontWeight.bold),
+        pw.Header(
+          level: 0,
+          child: pw.Text(
+            single != null ? 'Transaction Detail' : 'Transaction Report',
+            style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+          ),
         ),
-        pw.SizedBox(height: 12),
-
-        // Show customer info or all customers
+        pw.SizedBox(height: 8),
         pw.Text(
-          single != null
-              ? 'Customer: ${_selectedCustomer?.fullName ?? 'Unknown'}'
-              : _selectedCustomer != null
-              ? 'Customer: ${_selectedCustomer!.fullName}'
-              : 'All Customers',
-          style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700),
+          'Generated on: ${DateFormat.yMMMMd().add_jm().format(DateTime.now())}',
+          style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
         ),
-
+        if (_selectedCustomer != null && single == null) ...[
+          pw.SizedBox(height: 10),
+          pw.Text(
+            'Customer: ${_selectedCustomer!.fullName}',
+            style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+          ),
+        ],
         if (_filterMonth != null && single == null)
-          pw.Text('Month: ${DateFormat.yMMMM().format(_filterMonth!)}', style: pw.TextStyle(fontSize: 14)),
+          pw.Text('Month: ${DateFormat.yMMMM().format(_filterMonth!)}',
+              style: pw.TextStyle(fontSize: 12)),
         if (_filterRange != null && single == null)
           pw.Text(
             'Date Range: ${DateFormat.yMMMd().format(_filterRange!.start)} - ${DateFormat.yMMMd().format(_filterRange!.end)}',
-            style: pw.TextStyle(fontSize: 14),
+            style: pw.TextStyle(fontSize: 12),
           ),
-
         pw.SizedBox(height: 20),
 
-        // Single transaction detailed view
         if (single != null)
           pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
+              _pdfDetailRow('Customer Name', _selectedCustomer?.fullName ?? "Unknown"),
               _pdfDetailRow('Transaction Type', single.transactionType),
               _pdfDetailRow('Item', single.itemName),
-              _pdfDetailRow('Amount', 'PKR ${single.transactionAmount?.toStringAsFixed(2) ?? "0.00"}'),
+              _pdfDetailRow('Amount', 'PKR ${single.transactionAmount?.toStringAsFixed(0) ?? "0.00"}'),
               _pdfDetailRow('Date', DateFormat.yMMMMd().add_jm().format(single.timestamp!)),
               if (single.transactionMonth != null)
                 _pdfDetailRow('Transaction Month', single.transactionMonth),
+              if (single.note != null)
+                _pdfDetailRow('Note', single.note),
               if (single.entryTime != null)
                 _pdfDetailRow('Entry Time', single.entryTime),
             ],
           )
         else
-        // Multiple transactions as a table
           pw.Table.fromTextArray(
-            headers: [
-              'Type',
-              'Item',
-              'Amount (PKR)',
-              'Date',
-              'Transaction Month',
-            ],
-            data: txns.map((t) => [
-              t.transactionType ?? '-',
-              t.itemName ?? '-',
-              (t.transactionAmount ?? 0).toStringAsFixed(2),
-              t.timestamp != null ? DateFormat.yMMMd().add_jm().format(t.timestamp!) : '-',
-              t.transactionMonth ?? '-',
-            ]).toList(),
-            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12, color: PdfColors.white),
-            headerDecoration: pw.BoxDecoration(color: PdfColors.blue800),
-            cellStyle: pw.TextStyle(fontSize: 10, color: PdfColors.grey900),
-            cellAlignment: pw.Alignment.centerLeft,
-            border: pw.TableBorder.all(color: PdfColors.grey300),
-            columnWidths: {
-              0: const pw.FlexColumnWidth(2),
-              1: const pw.FlexColumnWidth(3),
-              2: const pw.FlexColumnWidth(2),
-              3: const pw.FlexColumnWidth(3),
-              4: const pw.FlexColumnWidth(2),
+            border: pw.TableBorder.all(width: 0.5, color: PdfColors.grey400),
+            headerDecoration: pw.BoxDecoration(color: PdfColors.blue300),
+            headerHeight: 25,
+            cellAlignments: {
+              0: pw.Alignment.centerLeft,
+              1: pw.Alignment.centerLeft,
+              2: pw.Alignment.center,
+              3: pw.Alignment.center,
+              4: pw.Alignment.centerLeft,
+              5: pw.Alignment.centerLeft,
+              6: pw.Alignment.centerRight,
             },
+            headers: [
+              'Customer',
+              'Transaction Type',
+              'Item',
+              'Month',
+              'Date',
+              'Note',
+              'Amount (PKR)',
+            ],
+            data: txns.map((t) {
+              final customerName = _customers.firstWhere(
+                    (c) => c.id == t.customerId,
+                orElse: () => CustomerModel(fullName: 'Unknown'),
+              ).fullName;
+
+              return [
+                customerName ?? 'Unknown',
+                t.transactionType ?? '-',
+                t.itemName ?? '-',
+                t.transactionMonth ?? '-',
+                t.timestamp != null
+                    ? DateFormat('MMM d, yyyy\nh:mm a').format(t.timestamp!)
+                    : '-',
+                (t.note != null && t.note!.isNotEmpty)
+                    ? (t.note!.length > 30 ? '${t.note!.substring(0, 30)}...' : t.note!)
+                    : '-',
+                pw.Text(
+                  t.transactionAmount?.toStringAsFixed(0) ?? '0.00',
+                  style: pw.TextStyle(
+                    fontSize: 11,
+                    fontWeight: pw.FontWeight.bold,
+                    color: (t.transactionAmount ?? 0) < 0
+                        ? PdfColors.red
+                        : PdfColors.green,
+                  ),
+                ),
+              ];
+            }).toList(),
           ),
 
-        if (single == null) pw.Divider(),
+        pw.SizedBox(height: 20),
 
-        // Total amount footer for multiple transactions
         if (single == null)
-          pw.Align(
-            alignment: pw.Alignment.centerRight,
-            child: pw.Text(
-              'Total Amount: PKR ${txns.fold(0.0, (sum, t) => sum + (t.transactionAmount ?? 0)).toStringAsFixed(2)}',
-              style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
-            ),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.end,
+            children: [
+              pw.Text(
+                'Total Transactions: ${txns.length}',
+                style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              ),
+              pw.SizedBox(width: 20),
+              pw.Text(
+                'Total Amount: PKR ${txns.fold(0.0, (sum, t) => sum + (t.transactionAmount ?? 0)).toStringAsFixed(2)}',
+                style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              ),
+            ],
           ),
       ],
     ));
@@ -166,25 +198,21 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
   pw.Widget _pdfDetailRow(String label, String? value) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 6),
+      padding: const pw.EdgeInsets.symmetric(vertical: 4),
       child: pw.Row(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
+          pw.Text("$label: ",
+              style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(width: 8),
           pw.Expanded(
-            flex: 2,
-            child: pw.Text(
-              label,
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
-            ),
-          ),
-          pw.Expanded(
-            flex: 3,
             child: pw.Text(value ?? '-', style: pw.TextStyle(fontSize: 12)),
           ),
         ],
       ),
     );
   }
+
 
   void _showTransactionDetails(TransactionModel txn) {
     final customer = _customers.firstWhere((c) => c.id == txn.customerId, orElse: () => CustomerModel(fullName: 'Unknown'));
@@ -197,14 +225,12 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _detailRow('Type', txn.transactionType),
-            _detailRow('Item', txn.itemName),
-            _detailRow('Amount', 'PKR ${txn.transactionAmount?.toStringAsFixed(2) ?? "0.00"}'),
-            _detailRow('Date', DateFormat.yMMMMd().add_jm().format(txn.timestamp!)),
+            _detailRow('Type:', "Installment"),
+            _detailRow('Item:', txn.itemName),
+            _detailRow('Amount:', 'Rs ${txn.transactionAmount?.toStringAsFixed(0) ?? "0.00"}'),
+            _detailRow('Date:', DateFormat.yMMMMd().add_jm().format(txn.timestamp!)),
             if (txn.transactionMonth != null)
               _detailRow('Txn Month', txn.transactionMonth),
-            if (txn.entryTime != null)
-              _detailRow('Entry Time', txn.entryTime),
           ],
         ),
         actions: [
@@ -232,6 +258,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       ),
     );
   }
+
   Future<void> _generateCustomerPdf(String customerId) async {
     final customer = _customers.firstWhere(
           (c) => c.id == customerId,
@@ -248,6 +275,14 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(24),
+      footer: (context) => pw.Container(
+        alignment: pw.Alignment.centerRight,
+        margin: const pw.EdgeInsets.only(top: 20),
+        child: pw.Text(
+          'Page ${context.pageNumber} of ${context.pagesCount}',
+          style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+        ),
+      ),
       build: (context) => [
         pw.Header(
           level: 0,
@@ -262,42 +297,50 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
         ),
         pw.SizedBox(height: 20),
-
-        // Table headers and rows
         pw.Table.fromTextArray(
           border: pw.TableBorder.all(width: 0.5, color: PdfColors.grey400),
           headerDecoration: pw.BoxDecoration(color: PdfColors.blue300),
           headerHeight: 25,
-          cellHeight: 40,
+          // Removed cellHeight so it flows naturally
           cellAlignments: {
             0: pw.Alignment.centerLeft,
             1: pw.Alignment.centerLeft,
             2: pw.Alignment.center,
             3: pw.Alignment.centerRight,
             4: pw.Alignment.center,
-            5: pw.Alignment.center,
           },
           headers: [
             'Transaction Type',
             'Item Name',
             'Installment Month',
+            'Transaction Time',
+            "Note",
             'Amount (PKR)',
-            'Transaction Date',
-            'Entry Time',
           ],
           data: customerTxns.map((t) => [
-            t.transactionType ?? '-',
+            t.transactionType,
             t.itemName ?? '-',
             t.transactionMonth ?? '-',
-            t.transactionAmount?.toStringAsFixed(2) ?? '0.00',
-            t.timestamp != null ? DateFormat.yMMMd().format(t.timestamp!) : '-',
-            t.entryTime ?? '-',
+            t.timestamp != null
+                ? DateFormat('MMM d, yyyy \n h:mm a').format(t.timestamp!)
+                : '-',
+            (t.note != null && t.note!.isNotEmpty)
+                ? (t.note!.length > 30 ? '${t.note!.substring(0, 30)}...' : t.note!)
+                : '-',
+            pw.Text(
+              t.transactionAmount?.toStringAsFixed(0) ?? '0.00',
+              style: pw.TextStyle(
+                fontSize: 11,
+                fontWeight: pw.FontWeight.bold,
+                color: (t.transactionAmount ?? 0) < 0
+                    ? PdfColors.red
+                    : PdfColors.green,
+              ),
+            ),
           ]).toList(),
-        ),
-
+        )
+        ,
         pw.SizedBox(height: 20),
-
-        // Summary
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.end,
           children: [
@@ -368,43 +411,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                     );
                   }).toList(),
                   onChanged: (v) => setState(() => _selectedCustomer = v),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final m = await showMonthPicker(
-                      context: context,
-                      initialDate: _filterMonth ?? DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime.now(),
-                    );
-                    if (m != null) setState(() => _filterMonth = m);
-                  },
-                  child: Text(_filterMonth != null
-                      ? DateFormat.yMMM().format(_filterMonth!)
-                      : 'Filter by Month'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final r = await showDateRangePicker(
-                      context: context,
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime.now(),
-                    );
-                    if (r != null) setState(() => _filterRange = r);
-                  },
-                  child: Text(_filterRange != null
-                      ? '${DateFormat.yMd().format(_filterRange!.start)} – ${DateFormat.yMd().format(_filterRange!.end)}'
-                      : 'Filter by Range'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _selectedCustomer = null;
-                      _filterMonth = null;
-                      _filterRange = null;
-                    });
-                  },
-                  child: const Text('Clear Filters'),
                 ),
               ],
             ),

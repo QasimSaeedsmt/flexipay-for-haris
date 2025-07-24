@@ -34,7 +34,7 @@ class _ItemEditFormState extends State<ItemEditForm> {
     itemNameController = TextEditingController(text: widget.item.itemName ?? '');
     itemDescriptionController = TextEditingController(text: widget.item.itemDescription ?? '');
     actualPriceController = TextEditingController(text: widget.item.actualPrice?.toString() ?? '');
-    totalPriceController = TextEditingController(text: widget.item.totalPaid?.toString() ?? '');
+    totalPriceController = TextEditingController(text: widget.item.installmentTotalPrice?.toString() ?? '');
     monthlyInstallmentController =
         TextEditingController(text: widget.item.installmentPerMonth?.toString() ?? '');
     remainingAmountController =
@@ -74,7 +74,7 @@ class _ItemEditFormState extends State<ItemEditForm> {
                   itemName: itemNameController.text,
                   itemDescription: itemDescriptionController.text,
                   actualPrice: double.tryParse(actualPriceController.text),
-                  totalPaid: double.tryParse(totalPriceController.text),
+                  installmentTotalPrice: double.tryParse(totalPriceController.text),
                   installmentPerMonth: double.tryParse(monthlyInstallmentController.text),
                   remainingAmount: double.tryParse(remainingAmountController.text),
                 );

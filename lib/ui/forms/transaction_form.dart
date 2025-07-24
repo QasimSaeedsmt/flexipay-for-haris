@@ -56,8 +56,10 @@ class _TransactionFormState extends State<TransactionForm> {
       return;
     }
     final monthKey = DateFormat('yyyy-MM').format(_selectedMonth!);
-    final transactions =
-    await CustomerService().getTransactionsForMonth(widget.customerId, monthKey);
+    final transactions = await CustomerService().getTransactionsForMonth(
+      widget.customerId,
+      monthKey,
+    );
 
     double totalPaid = 0.0;
     for (var txn in transactions) {
@@ -88,8 +90,10 @@ class _TransactionFormState extends State<TransactionForm> {
       final due = _selectedItem?.installmentPerMonth ?? 0.0;
 
       // Fetch already paid for this month & item
-      final transactions =
-      await CustomerService().getTransactionsForMonth(widget.customerId, key);
+      final transactions = await CustomerService().getTransactionsForMonth(
+        widget.customerId,
+        key,
+      );
 
       double totalPaid = 0.0;
       for (var txn in transactions) {
@@ -129,8 +133,10 @@ class _TransactionFormState extends State<TransactionForm> {
     if (amount > remaining) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content:
-            Text('Max allowed amount to pay: PKR${remaining.toStringAsFixed(0)}')),
+          content: Text(
+            'Max allowed amount to pay: Rs ${remaining.toStringAsFixed(0)}',
+          ),
+        ),
       );
       return;
     }
@@ -139,6 +145,7 @@ class _TransactionFormState extends State<TransactionForm> {
 
     // ✅ Add transaction
     await CustomerService().addTransaction(
+      transactionType: "Monthly Installment",
       customerId: widget.customerId,
       itemName: _selectedItem!.itemName!,
       monthKey: monthKey,
@@ -166,12 +173,14 @@ class _TransactionFormState extends State<TransactionForm> {
     if (_generateReceipt) {
       final pdf = _buildReceiptPdf(amount, due, monthKey);
       await Printing.sharePdf(
-          bytes: await pdf.save(), filename: 'FlexiPay_Receipt.pdf');
+        bytes: await pdf.save(),
+        filename: 'FlexiPay_Receipt.pdf',
+      );
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Installment recorded')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Installment recorded')));
 
     setState(() {
       _alreadyPaidForSelectedMonth += amount;
@@ -184,7 +193,7 @@ class _TransactionFormState extends State<TransactionForm> {
       _notesController.clear();
 
       final remaining = (due - _alreadyPaidForSelectedMonth).clamp(0.0, due);
-      _amountController.text = remaining.toStringAsFixed(2);
+      _amountController.text = remaining.toStringAsFixed(0);
 
       if (_alreadyPaidForSelectedMonth >= due) {
         _alreadyPaidForSelectedMonth = 0.0;
@@ -205,29 +214,36 @@ class _TransactionFormState extends State<TransactionForm> {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Center(
-                child: pw.Text('FlexiPay Receipt',
-                    style: pw.TextStyle(
-                      fontSize: 20,
-                      fontWeight: pw.FontWeight.bold,
-                      color: PdfColors.blueGrey900,
-                    )),
+                child: pw.Text(
+                  'FlexiPay Receipt',
+                  style: pw.TextStyle(
+                    fontSize: 20,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.blueGrey900,
+                  ),
+                ),
               ),
               pw.SizedBox(height: 20),
               _pdfRow('Customer Name:', _customer?.fullName ?? 'N/A'),
               _pdfRow('Item:', _selectedItem!.itemName ?? ''),
               _pdfRow('Installment Month:', monthKey),
-              _pdfRow('Amount Paid:', 'PKR${amount.toStringAsFixed(0)}'),
-              _pdfRow('Monthly Due:', 'PKR${due.toStringAsFixed(0)}'),
+              _pdfRow('Amount Paid:', 'Rs ${amount.toStringAsFixed(0)}'),
+              _pdfRow('Monthly Due:', 'Rs ${due.toStringAsFixed(0)}'),
               _pdfRow(
-                  'Remaining Balance:',
-                  '\$${(due - (amount + _alreadyPaidForSelectedMonth)).clamp(0, due).toStringAsFixed(2)}'),
+                'Remaining Balance:',
+                'Rs ${(due - (amount + _alreadyPaidForSelectedMonth)).clamp(0, due).toStringAsFixed(0)}',
+              ),
               _pdfRow(
-                  'Notes:',
-                  _notesController.text.trim().isEmpty
-                      ? 'Installment of month'
-                      : _notesController.text.trim()),
+                'Notes:',
+                _notesController.text.trim().isEmpty
+                    ? 'Monthly Installment'
+                    : _notesController.text.trim(),
+              ),
               _pdfRow('Date:', now),
-              _pdfRow('Balance:', '\$${_customer?.totalBalance?.toStringAsFixed(0) ?? '0.00'}'),
+              _pdfRow(
+                'Balance:',
+                'Rs ${_customer?.totalBalance?.toStringAsFixed(0) ?? '0.00'}',
+              ),
 
               pw.Spacer(),
               pw.SizedBox(height: 24),
@@ -236,24 +252,30 @@ class _TransactionFormState extends State<TransactionForm> {
               pw.Center(
                 child: pw.Column(
                   children: [
-                    pw.Text('Thank you for choosing FlexiPay.',
-                        style: pw.TextStyle(
-                          fontSize: 12,
-                          fontStyle: pw.FontStyle.italic,
-                          color: PdfColors.grey700,
-                        )),
+                    pw.Text(
+                      'Thank you for choosing FlexiPay.',
+                      style: pw.TextStyle(
+                        fontSize: 12,
+                        fontStyle: pw.FontStyle.italic,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
                     pw.SizedBox(height: 6),
-                    pw.Text('Hafiz Haris Hussain',
-                        style: pw.TextStyle(
-                          fontSize: 12,
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColors.black,
-                        )),
-                    pw.Text('Par Hoti Mardan',
-                        style: pw.TextStyle(
-                          fontSize: 11,
-                          color: PdfColors.grey700,
-                        )),
+                    pw.Text(
+                      'Hafiz Haris Hussain',
+                      style: pw.TextStyle(
+                        fontSize: 12,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.black,
+                      ),
+                    ),
+                    pw.Text(
+                      'Par Hoti Mardan',
+                      style: pw.TextStyle(
+                        fontSize: 11,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -287,32 +309,51 @@ class _TransactionFormState extends State<TransactionForm> {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        build: (ctx) => [
-          pw.Center(
-            child: pw.Text('Transaction History',
-                style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
-          ),
-          pw.SizedBox(height: 16),
-          ...txns.map((t) {
-            return pw.Column(children: [
-              pw.Divider(),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text(t.transactionMonth ?? 'N/A'),
-                  pw.Text('PKR${t.transactionAmount?.toStringAsFixed(0) ?? '0.00'}'),
-                ],
+        build:
+            (ctx) => [
+              pw.Center(
+                child: pw.Text(
+                  'Transaction History',
+                  style: pw.TextStyle(
+                    fontSize: 22,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
               ),
-              pw.Text('Notes: ${t.entryTime ?? '—'}',
-                  style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-              pw.SizedBox(height: 6),
-            ]);
-          }),
-        ],
+              pw.SizedBox(height: 16),
+              ...txns.map((t) {
+                return pw.Column(
+                  children: [
+                    pw.Divider(),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text(t.transactionMonth ?? 'N/A'),
+                        pw.Text(
+                          'Rs ${t.transactionAmount?.toStringAsFixed(0) ?? '0.00'}',
+                        ),
+                      ],
+                    ),
+                    pw.Text(
+                      'Notes: ${t.entryTime ?? '—'}',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                    pw.SizedBox(height: 6),
+                  ],
+                );
+              }),
+            ],
       ),
     );
 
     await Printing.layoutPdf(onLayout: (f) => pdf.save());
+  }
+  bool _isItemFullyPaid(ItemModel item) {
+    final remaining = item.remainingAmount ?? 0.0;
+    return remaining <= 0.0;
   }
 
   @override
@@ -339,18 +380,33 @@ class _TransactionFormState extends State<TransactionForm> {
           child: ListView(
             children: [
               DropdownButtonFormField<ItemModel>(
-                value: _selectedItem,
+                value: _selectedItem != null && !_isItemFullyPaid(_selectedItem!)
+                    ? _selectedItem
+                    : null,
                 decoration: const InputDecoration(
-                    labelText: 'Select Item', border: OutlineInputBorder()),
+                  labelText: 'Select Item',
+                  border: OutlineInputBorder(),
+                ),
                 items: items.map((i) {
-                  return DropdownMenuItem(value: i, child: Text(i.itemName!));
+                  final isPaid = _isItemFullyPaid(i);
+                  return DropdownMenuItem(
+                    value: isPaid ? null : i,
+                    enabled: !isPaid,
+                    child: Text(
+                      '${i.itemName!}${isPaid ? ' (Paid)' : ''}',
+                      style: TextStyle(
+                        color: isPaid ? Colors.grey : Colors.black,
+                        fontStyle: isPaid ? FontStyle.italic : FontStyle.normal,
+                      ),
+                    ),
+                  );
                 }).toList(),
                 validator: (val) => val == null ? 'Select item' : null,
                 onChanged: (i) async {
-                  setState(() {
-                    _selectedItem = i;
-                  });
-                  await _updateAlreadyPaid();
+                  if (i != null && !_isItemFullyPaid(i)) {
+                    setState(() => _selectedItem = i);
+                    await _updateAlreadyPaid();
+                  }
                 },
               ),
               const SizedBox(height: 16),
@@ -362,11 +418,17 @@ class _TransactionFormState extends State<TransactionForm> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Monthly Due:', style: TextStyle(fontSize: 16)),
+                        const Text(
+                          'Monthly Due:',
+                          style: TextStyle(fontSize: 16),
+                        ),
                         Text(
-                            'PKR${_selectedItem!.installmentPerMonth?.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold)),
+                          'Rs ${_selectedItem!.installmentPerMonth?.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -387,19 +449,25 @@ class _TransactionFormState extends State<TransactionForm> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _amountController,
-                keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: const InputDecoration(
-                    labelText: 'Amount Paid', border: OutlineInputBorder()),
+                  labelText: 'Amount Paid',
+                  border: OutlineInputBorder(),
+                ),
                 validator: (val) {
                   if (val == null || double.tryParse(val) == null) {
                     return 'Enter valid amount';
                   }
                   final num = double.parse(val);
                   final due = _selectedItem?.installmentPerMonth ?? 0;
-                  final remaining = (due - _alreadyPaidForSelectedMonth).clamp(0, due);
+                  final remaining = (due - _alreadyPaidForSelectedMonth).clamp(
+                    0,
+                    due,
+                  );
                   if (num > remaining) {
-                    return 'Max allowed:PKR${remaining.toStringAsFixed(0)}';
+                    return 'Max allowed:Rs ${remaining.toStringAsFixed(0)}';
                   }
                   return null;
                 },
@@ -408,7 +476,7 @@ class _TransactionFormState extends State<TransactionForm> {
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
                   child: Text(
-                    'Remaining balance for selected month: PKR${((_selectedItem!.installmentPerMonth ?? 0) - _alreadyPaidForSelectedMonth).clamp(0, _selectedItem!.installmentPerMonth ?? 0).toStringAsFixed(2)}',
+                    'Remaining balance for selected month: Rs ${((_selectedItem!.installmentPerMonth ?? 0) - _alreadyPaidForSelectedMonth).clamp(0, _selectedItem!.installmentPerMonth ?? 0).toStringAsFixed(2)}',
                     style: const TextStyle(color: Colors.grey),
                   ),
                 ),
@@ -416,7 +484,9 @@ class _TransactionFormState extends State<TransactionForm> {
               TextFormField(
                 controller: _notesController,
                 decoration: const InputDecoration(
-                    labelText: 'Notes (optional)', border: OutlineInputBorder()),
+                  labelText: 'Notes (optional)',
+                  border: OutlineInputBorder(),
+                ),
                 maxLines: 2,
               ),
               const SizedBox(height: 16),
@@ -426,11 +496,20 @@ class _TransactionFormState extends State<TransactionForm> {
                 onChanged: (v) => setState(() => _generateReceipt = v),
               ),
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: _submit, child: const Text('Submit Transaction')),
+              ElevatedButton(
+                onPressed: _submit,
+                child: const Text('Submit Transaction'),
+              ),
               const SizedBox(height: 12),
-              ElevatedButton(onPressed: _viewHistory, child: const Text('View & Print History')),
+              ElevatedButton(
+                onPressed: _viewHistory,
+                child: const Text('View & Print History'),
+              ),
               const SizedBox(height: 12),
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
             ],
           ),
         ),

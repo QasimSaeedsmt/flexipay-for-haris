@@ -67,6 +67,7 @@ class CustomerService {
 
   // Add a new transaction
   Future<void> addTransaction({
+    required String transactionType,
     required String customerId,
     required String itemName,
     required String monthKey,
@@ -76,12 +77,13 @@ class CustomerService {
     final now = DateTime.now();
     final transaction = TransactionModel(
       customerId: customerId, // ✅ Important: this links the transaction to the customer!
-      transactionType: itemName,
+      transactionType: transactionType,
       transactionMonth: monthKey,
       itemName: itemName,
       transactionAmount: amount,
       entryTime: now.toString(),
       timestamp: now,
+      note: notes
     );
 
     await _db
@@ -185,17 +187,28 @@ class CustomerService {
 
     final data = doc.data() as Map<String, dynamic>;
     List<dynamic> currentItems = data['items'] ?? [];
-    currentItems.add(item.toMap());
 
-    // Sum all item totalPaid amounts including the new one
+    // Construct the item map with controlled values
+    final double price = item.installmentTotalPrice ?? 0.0;
+
+    final newItemMap = {
+      ...item.toMap(),
+      'totalPaid': 0.0,
+      'installmentTotalPrice': price,
+      'remaining': price, // Since totalPaid = 0.0
+    };
+
+    currentItems.add(newItemMap);
+
+    // Calculate totalBalance from all items
     double newTotalBalance = 0.0;
     for (var i in currentItems) {
-      newTotalBalance += (i['totalPaid'] ?? 0.0) as double;
+      newTotalBalance += (i['totalPaid'] ?? 0).toDouble();
     }
 
     await _customerRef.doc(customerId).update({
       'items': currentItems,
-      'totalBalance': newTotalBalance, // ✅ Update total balance field
+      'totalBalance': newTotalBalance,
     });
   }
   Future<void> createInitialTransactionIfNoneExists(String customerId) async {
