@@ -72,26 +72,108 @@ class CustomerService {
     required String itemName,
     required String monthKey,
     required double amount,
-    String? notes,
+    required String? notes,
   }) async {
     final now = DateTime.now();
     final transaction = TransactionModel(
-      customerId: customerId, // ✅ Important: this links the transaction to the customer!
+      customerId: customerId,
       transactionType: transactionType,
       transactionMonth: monthKey,
       itemName: itemName,
       transactionAmount: amount,
       entryTime: now.toString(),
       timestamp: now,
-      note: notes
+      note: notes,
     );
 
+    // Add the transaction to Firestore
     await _db
         .collection('customers')
         .doc(customerId)
         .collection('transactions')
         .add(transaction.toMap());
+
+    // Now update the item data with the new totalPaid and remainingAmount
+    final customerDoc = await _customerRef.doc(customerId).get();
+    if (!customerDoc.exists) {
+      print("Customer document not found.");
+      return;
+    }
+
+    final customerData = customerDoc.data() as Map<String, dynamic>;
+    List<dynamic> currentItems = customerData['items'] ?? [];
+
+    // Find the item related to this transaction
+    final itemIndex = currentItems.indexWhere((item) => item['itemName'] == itemName);
+    if (itemIndex == -1) {
+      print("Item not found for this transaction: $itemName");
+      return; // Item not found for this transaction
+    }
+
+    // Get the item data and calculate new values
+    final item = currentItems[itemIndex];
+
+    double totalPaid = item['totalPaid'] ?? 0.0;
+    double remainingAmount = item['remainingAmount'] ?? 0.0;
+    final double installmentTotalPrice = item['installmentTotalPrice'] ?? 0.0;
+    final double installmentPerMonth = item['installmentPerMonth'] ?? 0.0;
+
+    print("Before update:");
+    print("Total Paid: $totalPaid");
+    print("Remaining Amount: $remainingAmount");
+    print("Transaction Type: $transactionType");
+    print("Amount: $amount");
+
+    // Update totalPaid and remainingAmount based on transaction type
+    if (transactionType == 'payment') {
+      totalPaid += amount; // Add the payment to the totalPaid
+      print("Processing Payment: +$amount");
+    } else if (transactionType == 'refund') {
+      totalPaid -= amount; // Subtract from the totalPaid (if it's a refund)
+      print("Processing Refund: -$amount");
+    }
+
+    // Ensure totalPaid doesn't go below 0
+    if (totalPaid < 0) totalPaid = 0.0;
+
+    // Debugging: Print the updated value of totalPaid
+    print("Updated Total Paid: $totalPaid");
+
+    // Recalculate remainingAmount
+    remainingAmount = installmentTotalPrice - totalPaid;
+
+    // Update the remaining months (rounded up)
+    int remainingMonths = (remainingAmount / installmentPerMonth).ceil();
+    if (remainingAmount <= 0) remainingMonths = 0; // No months left if remainingAmount is 0 or less
+
+    print("After update:");
+    print("Updated Remaining Amount: $remainingAmount");
+    print("Updated Remaining Months: $remainingMonths");
+
+    // Update the item data
+    currentItems[itemIndex] = {
+      ...item,
+      'totalPaid': totalPaid,
+      'remainingAmount': remainingAmount,
+      'remainingMonths': remainingMonths,
+    };
+
+    // Recalculate totalBalance for the customer
+    double newTotalBalance = 0.0;
+    for (var i in currentItems) {
+      newTotalBalance += (i['totalPaid'] ?? 0).toDouble();
+    }
+
+    // Update the customer data with new values
+    await _customerRef.doc(customerId).update({
+      'items': currentItems,
+      'totalBalance': newTotalBalance,
+    });
+
+    print("Customer data updated successfully.");
+    print("New Total Balance: $newTotalBalance");
   }
+
 
   Future<List<TransactionModel>> getTransactionsForMonth(String customerId, String monthKey) async {
     // Fetch all transactions for the customer
@@ -182,34 +264,68 @@ class CustomerService {
 
   // 4. Add Item to Customer
   Future<void> addItemToCustomer(String customerId, ItemModel item) async {
+    // Fetch customer document from Firestore
     final doc = await _customerRef.doc(customerId).get();
-    if (!doc.exists) return;
+    if (!doc.exists) {
+      print("Error: Customer document does not exist for customerId: $customerId");
+      return;
+    }
 
+    // Get the data of the customer
     final data = doc.data() as Map<String, dynamic>;
     List<dynamic> currentItems = data['items'] ?? [];
 
-    // Construct the item map with controlled values
+    // Debug: Print the current items before adding the new one
+    print("Current items before adding new item: ${currentItems}");
+
+    // Calculate the price for the item
     final double price = item.installmentTotalPrice ?? 0.0;
 
+    // Debug: Print the price being used for the new item
+    print("Price being used for new item: $price");
+
+    // Create the new item map with the initial values
     final newItemMap = {
       ...item.toMap(),
-      'totalPaid': 0.0,
-      'installmentTotalPrice': price,
-      'remaining': price, // Since totalPaid = 0.0
+      'totalPaid': 0.0, // Initially, no payment has been made
+      'installmentTotalPrice': price, // Set total price for installments
+      'remainingAmount': price, // Set remaining amount same as the price initially
     };
+    print("Installment Total Price to save: ${newItemMap['installmentTotalPrice']}");
 
+    // Debug: Print the new item map that will be added
+    print("New item map to be added: $newItemMap");
+
+    // Add the new item to the current items list
     currentItems.add(newItemMap);
+
+    // Debug: Print the items after adding the new one
+    print("Current items after adding new item: $currentItems");
 
     // Calculate totalBalance from all items
     double newTotalBalance = 0.0;
-    for (var i in currentItems) {
-      newTotalBalance += (i['totalPaid'] ?? 0).toDouble();
+    for (var item in currentItems) {
+      newTotalBalance += (item['totalPaid'] ?? 0).toDouble();
     }
 
-    await _customerRef.doc(customerId).update({
-      'items': currentItems,
-      'totalBalance': newTotalBalance,
-    });
+    // Debug: Print the new total balance
+    print("New total balance after adding item: $newTotalBalance");
+    print("this is total price: $price");
+
+
+    // Update the customer document with the new items and total balance
+    try {
+      await _customerRef.doc(customerId).update({
+        'items': currentItems,
+        'totalBalance': newTotalBalance,
+      });
+      print("Customer document updated successfully for customerId: $customerId");
+    } catch (e) {
+      print("Error updating customer document: $e");
+    }
+
+    // Trigger the UI update by notifying listeners or updating the state.
+    // If you're using a provider or setState, ensure it triggers a refresh.
   }
   Future<void> createInitialTransactionIfNoneExists(String customerId) async {
     final transactionsRef = FirebaseFirestore.instance

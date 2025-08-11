@@ -15,6 +15,13 @@ class ItemInfoDialog extends StatelessWidget {
     final monthly = item.installmentPerMonth ?? 1; // prevent divide-by-zero
     final remainingMonths = monthly > 0 ? (remaining / monthly).ceil() : 0;
 
+    // Debugging prints to check the item values
+    print("Item Name: ${item.itemName}");
+    print("Installment Total Price: ${item.installmentTotalPrice}");
+    print("Remaining Amount: ${item.remainingAmount}");
+    print("Actual Price: ${item.actualPrice}");
+    print("Monthly Installment: ${item.installmentPerMonth}");
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       insetPadding: const EdgeInsets.all(24),

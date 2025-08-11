@@ -251,18 +251,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Home"),
+        title: const Text("Dashboard"),
         centerTitle: true,
-        actions: [
-          TextButton.icon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const TransactionHistoryScreen()),
-            ),
-            icon: const Icon(Icons.history, color: Colors.black),
-            label: const Text("History", style: TextStyle(color: Colors.black)),
-          ),
-        ],
+
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -303,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(builder: (_) => const TransactionHistoryScreen()),
                     ),
                     icon: const Icon(Icons.receipt_long),
-                    label: const Text("Transactions"),
+                    label: const Text("History", style: TextStyle(color: Colors.black)),
                   ),
                 ],
               ),

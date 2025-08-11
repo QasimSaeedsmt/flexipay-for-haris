@@ -173,17 +173,22 @@ class _ItemsDialogState extends State<ItemsDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () async {
-            final newItem = await showDialog<ItemModel>(
-              context: context,
-              builder: (_) =>
-                  AlertDialog(content: ItemForm(customerId: widget.customerId)),
-            );
-            if (newItem != null) {
-              _addItem(newItem);
-            }
-          },
-          child: const Text("Add New Item"),
+        onPressed: () async {
+      final newItem = await showModalBottomSheet<ItemModel>(
+        context: context,
+        isScrollControlled: true, // allows full-height bottom sheet
+        builder: (_) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: ItemForm(customerId: widget.customerId),
+        ),
+      );
+      if (newItem != null) {
+        _addItem(newItem);
+      }
+    }
+,          child: const Text("Add New Item"),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context),
