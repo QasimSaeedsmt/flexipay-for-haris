@@ -6,7 +6,15 @@ import 'package:flexipay/ui/transaction_history_screen.dart';
 import 'package:flexipay/data/models/transaction_model.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;         // 👈 This is the important line
+import 'package:permission_handler/permission_handler.dart';
 import 'package:printing/printing.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../dialog_utils.dart';
+import '../msg_utils.dart';
+import '../permission_utils.dart';
+import '../services/payment_reminder_service.dart';
+import '../string_resources.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
   @override
@@ -253,8 +261,48 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text("Dashboard"),
         centerTitle: true,
+actions: [
+  ElevatedButton(onPressed: ()async{
+    MessageUtils().sendMessage(number: "03339895695",
+        customerName: "Qasim Saeed",
+        installmentMonth: "August", amount: 4000, context: context);
+//     final reminderService = PaymentReminderService();
+//
+//     try {
+//       await reminderService.sendSmsReminder(
+//         'Ali Khan',
+//         '03001234567',
+//         'August',
+//         5000,
+//       );
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         const SnackBar(content: Text('SMS intent launched!')),
+//       );
+//     } catch (e) {
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         SnackBar(content: Text('Failed to send SMS: $e')),
+//       );
+//     }
+// // Send SMS
+//     await reminderService.sendSmsReminder(
+//       'Ali Khan',
+//       '03001234567',
+//       'August',
+//       5000,
+//     );
 
+// Send WhatsApp Message
+//     await reminderService.sendWhatsappReminder(
+//       'Ali Khan',
+//       '03001234567',
+//       'August',
+//       5000,
+//     );
+
+  }, child: Icon(Icons.account_balance_wallet))
+],
       ),
+
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -309,3 +357,5 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
+

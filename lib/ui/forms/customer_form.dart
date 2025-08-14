@@ -108,14 +108,14 @@ class _CustomerFormState extends State<CustomerForm> {
                     }
                     return null;
                   }),
-                  _buildField('Initial Total Balance (Rs)', _totalBalanceController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: (val) {
-                        if (val == null || double.tryParse(val.trim()) == null) {
-                          return 'Enter a valid amount';
-                        }
-                        return null;
-                      }),
+                  // _buildField('Initial Total Balance (Rs)', _totalBalanceController,
+                  //     keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  //     validator: (val) {
+                  //       if (val == null || double.tryParse(val.trim()) == null) {
+                  //         return 'Enter a valid amount';
+                  //       }
+                  //       return null;
+                  //     }),
                   const SizedBox(height: 24),
                   _isSubmitting
                       ? const CircularProgressIndicator()

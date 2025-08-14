@@ -14,10 +14,12 @@ class ItemForm extends StatefulWidget {
 
 class _ItemFormState extends State<ItemForm> {
   final TextEditingController itemNameController = TextEditingController();
-  final TextEditingController itemDescriptionController = TextEditingController();
+  final TextEditingController itemDescriptionController =
+      TextEditingController();
   final TextEditingController actualPriceController = TextEditingController();
   final TextEditingController totalPriceController = TextEditingController();
-  final TextEditingController monthlyInstallmentController = TextEditingController();
+  final TextEditingController monthlyInstallmentController =
+      TextEditingController();
 
   double remainingAmount = 0.0;
   int totalMonths = 0;
@@ -53,12 +55,17 @@ class _ItemFormState extends State<ItemForm> {
     super.dispose();
   }
 
-  Widget _buildTextFormField(String label, TextEditingController controller, {bool isNumber = false}) {
+  Widget _buildTextFormField(
+    String label,
+    TextEditingController controller, {
+    bool isNumber = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
       child: TextFormField(
         controller: controller,
-        keyboardType: isNumber ? TextInputType.numberWithOptions(decimal: true) : null,
+        keyboardType:
+            isNumber ? TextInputType.numberWithOptions(decimal: true) : null,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(),
@@ -78,20 +85,37 @@ class _ItemFormState extends State<ItemForm> {
           children: [
             _buildTextFormField("Item Name", itemNameController),
             _buildTextFormField("Item Description", itemDescriptionController),
-            _buildTextFormField("Actual Price", actualPriceController, isNumber: true),
-            _buildTextFormField("Total Price (PKR)", totalPriceController, isNumber: true),
-            _buildTextFormField("Monthly Installment (PKR)", monthlyInstallmentController, isNumber: true),
+            _buildTextFormField(
+              "Actual Price",
+              actualPriceController,
+              isNumber: true,
+            ),
+            _buildTextFormField(
+              "Total Price (PKR)",
+              totalPriceController,
+              isNumber: true,
+            ),
+            _buildTextFormField(
+              "Monthly Installment (PKR)",
+              monthlyInstallmentController,
+              isNumber: true,
+            ),
 
             const SizedBox(height: 20),
 
             // 💡 Summary Section
             Card(
               elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               margin: const EdgeInsets.symmetric(vertical: 16),
               color: Colors.blueGrey[50],
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 20,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -112,7 +136,12 @@ class _ItemFormState extends State<ItemForm> {
                       children: [
                         const Icon(Icons.attach_money, color: Colors.green),
                         const SizedBox(width: 8),
-                        const Expanded(child: Text("Total Price:", style: TextStyle(fontSize: 15))),
+                        const Expanded(
+                          child: Text(
+                            "Total Price:",
+                            style: TextStyle(fontSize: 15),
+                          ),
+                        ),
                         Text(
                           "PKR ${remainingAmount.toStringAsFixed(0)}",
                           style: const TextStyle(fontWeight: FontWeight.w600),
@@ -125,7 +154,12 @@ class _ItemFormState extends State<ItemForm> {
                       children: [
                         const Icon(Icons.calendar_today, color: Colors.orange),
                         const SizedBox(width: 8),
-                        const Expanded(child: Text("Number of Months:", style: TextStyle(fontSize: 15))),
+                        const Expanded(
+                          child: Text(
+                            "Number of Months:",
+                            style: TextStyle(fontSize: 15),
+                          ),
+                        ),
                         Text(
                           "$totalMonths",
                           style: const TextStyle(fontWeight: FontWeight.w600),
@@ -137,9 +171,18 @@ class _ItemFormState extends State<ItemForm> {
                     if (totalMonths > 0 && lastMonthAmount > 0)
                       Row(
                         children: [
-                          const Icon(Icons.info_outline, color: Colors.redAccent),
+                          const Icon(
+                            Icons.info_outline,
+                            color: Colors.redAccent,
+                          ),
                           const SizedBox(width: 8),
-                          const Expanded(child: Text("Extra Last Month Amount:", overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 15))),
+                          const Expanded(
+                            child: Text(
+                              "Extra Last Month Amount:",
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 15),
+                            ),
+                          ),
                           Text(
                             "PKR ${lastMonthAmount.toStringAsFixed(0)}",
                             style: const TextStyle(
@@ -159,10 +202,16 @@ class _ItemFormState extends State<ItemForm> {
             ElevatedButton(
               onPressed: () {
                 final totalPrice = double.tryParse(totalPriceController.text);
-                final monthly = double.tryParse(monthlyInstallmentController.text);
+                final monthly = double.tryParse(
+                  monthlyInstallmentController.text,
+                );
                 final actual = double.tryParse(actualPriceController.text);
 
-                if (totalPrice == null || monthly == null || actual == null || totalPrice <= 0 || monthly <= 0) {
+                if (totalPrice == null ||
+                    monthly == null ||
+                    actual == null ||
+                    totalPrice <= 0 ||
+                    monthly <= 0) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Please enter valid prices')),
                   );
@@ -177,7 +226,7 @@ class _ItemFormState extends State<ItemForm> {
                   installmentTotalPrice: totalPrice,
                   remainingAmount: totalPrice,
                   installmentPerMonth: monthly,
-                  totalPaid: 0.0
+                  totalPaid: 0.0,
                 );
 
                 CustomerService().addItemToCustomer(widget.customerId, item);

@@ -1,13 +1,11 @@
 import 'package:flexipay/data/models/customer_model.dart';
 import 'package:flexipay/services/customer_services.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'forms/adjustment_form.dart';
 import 'forms/customer_form.dart';
-import 'forms/item_form.dart';
 import 'forms/transaction_form.dart';
 import 'edit_customer_screen.dart';
-import 'item.dart'; // Ensure this maps correctly to your ItemsDialog
+import 'item.dart';
 
 class CustomerListScreen extends StatefulWidget {
   const CustomerListScreen({Key? key}) : super(key: key);
@@ -122,67 +120,103 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                 },
               ),
             ),
-            const Divider(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            const Divider(),Column(
               children: [
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.payments),
-                  label: const Text('Receive Installment'),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => TransactionForm(customerId: customer.id!),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.payments_outlined),
+                      label: const Text('Receive Installment'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        textStyle: const TextStyle(fontSize: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
-                    );
-                  },
-                ),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Edit'),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EditCustomerScreen(customer: customer),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TransactionForm(customerId: customer.id!),
+                          ),
+                        );
+                      },
+                    ),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.edit_note_outlined),
+                      label: const Text('Edit'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        textStyle: const TextStyle(fontSize: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
-                    );
-                  },
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EditCustomerScreen(customer: customer),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 100),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.adjust),
-                  label: const Text('Adjustments'),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AdjustmentForm(customerId: customer.id!),
+                SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.tune_outlined),
+                      label: const Text('Adjustments'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        textStyle: const TextStyle(fontSize: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
-                    );
-                  },
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AdjustmentForm(customerId: customer.id!),
+                          ),
+                        );
+                      },
+                    ),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Delete'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        textStyle: const TextStyle(fontSize: 16),
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _deleteCustomer(customer);
+                      },
+                    ),
+                  ],
                 ),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.delete),
-                  label: const Text('Delete'),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _deleteCustomer(customer);
-                  },
-                ),
+
+                SizedBox(height: MediaQuery.of(context).size.height * 0.08),
               ],
-            ),
-            const SizedBox(height: 100),
+            )
+
           ],
         ),
       ),
