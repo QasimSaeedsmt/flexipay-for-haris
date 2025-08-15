@@ -262,44 +262,49 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text("Dashboard"),
         centerTitle: true,
 actions: [
-  ElevatedButton(onPressed: ()async{
-    MessageUtils.sendWhatsAppMessage(
-        customerName: "Qasim Saeed",
-        installmentMonth: "August", amount: 4000, context: context,phoneNumber:  "923339895695");
-//     final reminderService = PaymentReminderService();
+//   ElevatedButton(onPressed: ()async{
+//     MessageUtils.sendWhatsAppMessage(
+//       message:
 //
-//     try {
-//       await reminderService.sendSmsReminder(
-//         'Ali Khan',
-//         '03001234567',
-//         'August',
-//         5000,
-//       );
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(content: Text('SMS intent launched!')),
-//       );
-//     } catch (e) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(content: Text('Failed to send SMS: $e')),
-//       );
-//     }
-// // Send SMS
-//     await reminderService.sendSmsReminder(
-//       'Ali Khan',
-//       '03001234567',
-//       'August',
-//       5000,
+// ,
+//         // customerName: "Qasim Saeed",
+//         // installmentMonth: "August", amount: 4000, context: context,
+//       phoneNumber:  "923339895695"
 //     );
-
-// Send WhatsApp Message
-//     await reminderService.sendWhatsappReminder(
-//       'Ali Khan',
-//       '03001234567',
-//       'August',
-//       5000,
-//     );
-
-  }, child: Icon(Icons.account_balance_wallet))
+// //     final reminderService = PaymentReminderService();
+// //
+// //     try {
+// //       await reminderService.sendSmsReminder(
+// //         'Ali Khan',
+// //         '03001234567',
+// //         'August',
+// //         5000,
+// //       );
+// //       ScaffoldMessenger.of(context).showSnackBar(
+// //         const SnackBar(content: Text('SMS intent launched!')),
+// //       );
+// //     } catch (e) {
+// //       ScaffoldMessenger.of(context).showSnackBar(
+// //         SnackBar(content: Text('Failed to send SMS: $e')),
+// //       );
+// //     }
+// // // Send SMS
+// //     await reminderService.sendSmsReminder(
+// //       'Ali Khan',
+// //       '03001234567',
+// //       'August',
+// //       5000,
+// //     );
+//
+// // Send WhatsApp Message
+// //     await reminderService.sendWhatsappReminder(
+// //       'Ali Khan',
+// //       '03001234567',
+// //       'August',
+// //       5000,
+// //     );
+//
+//   }, child: Icon(Icons.account_balance_wallet))
 ],
       ),
 
