@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../data/models/customer_model.dart';
 import '../data/models/item_model.dart';
+import '../data/models/message_model.dart';
 import '../data/models/transaction_model.dart';
 
 class CustomerService {
@@ -432,5 +433,30 @@ class CustomerService {
           )
           .toList();
     });
+  }
+
+  Future<void> logMessage(MessageLogModel log) async {
+    await _firestore
+        .collection('customers')
+        .doc(log.customerId)
+        .collection('messageLogs')
+        .add(log.toMap());
+  }
+
+  Future<bool> hasSentMessage({
+    required String customerId,
+    required String itemName,
+    required String monthKey,
+  }) async {
+    final query = await _firestore
+        .collection('customers')
+        .doc(customerId)
+        .collection('messageLogs')
+        .where('itemName', isEqualTo: itemName)
+        .where('monthKey', isEqualTo: monthKey)
+        .limit(1)
+        .get();
+
+    return query.docs.isNotEmpty;
   }
 }

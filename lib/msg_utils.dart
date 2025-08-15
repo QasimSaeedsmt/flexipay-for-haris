@@ -157,45 +157,102 @@ import 'package:flutter/services.dart';
 
 import 'package:flutter/services.dart';
 
+import 'package:flutter/services.dart';
+
+import 'package:flutter/services.dart';
+
+enum MessageLanguage { english, urdu, romanUrdu }
+
 class MessageUtils {
   static const MethodChannel _channel = MethodChannel('com.example.flexipay');
 
-  static Future<void> sendWhatsAppMessage({ required String phoneNumber,required String installmentMonth,
-    required double installmentAmount,required String customerName,  }) async {
+  static String _buildMessage({
+    required String customerName,
+    required String installmentMonth,
+    required double installmentAmount,
+    required String itemName,
+    required MessageLanguage language,
+  }) {
+    final amount = installmentAmount.toStringAsFixed(0);
+
+    switch (language) {
+      case MessageLanguage.urdu:
+        return 'محترم $customerName،\n\n'
+            'آپ کی پراڈکٹ "$itemName" کی $installmentMonth کی ماہانہ قسط بقایا ہے۔ '
+            'ادا کی جانے والی رقم Rs. $amount ہے۔\n\n'
+            'براہ کرم بروقت ادائیگی کو یقینی بنائیں۔\n\n'
+            'اگر آپ ادائیگی کر چکے ہیں تو براہ کرم اس پیغام کو نظر انداز کریں۔\n\n'
+            'آپ کے تعاون کا شکریہ۔\n\n'
+            'حارث حسین';
+
+      case MessageLanguage.romanUrdu:
+        return 'Assalam o Alaikum $customerName,\n\n'
+            'Aap ki product "$itemName" ki $installmentMonth k mahinay ki qist due hai. '
+            'Adaigi ki raqam Rs. $amount hai.\n\n'
+            'Meharbani kar ke bar waqt adaigi ko yaqini banayein.\n\n'
+            'Agar aap ne payment kar di hai to is paigham ko nazar andaz karein.\n\n'
+            'Shukriya,\n'
+            'Haris Hussain';
+
+      case MessageLanguage.english:
+      default:
+        return 'Hello $customerName,\n\n'
+            'This is a reminder that your monthly installment for the item "$itemName" '
+            'for $installmentMonth is now due. The payable amount is Rs. $amount.\n\n'
+            'Please make the payment at your earliest convenience.\n\n'
+            'If you have already completed the payment, kindly disregard this message.\n\n'
+            'Thank you for your cooperation.\n\n'
+            'Regards,\n'
+            'Haris Hussain';
+    }
+  }
+
+  static Future<void> sendWhatsAppMessage({
+    required String phoneNumber,
+    required String installmentMonth,
+    required double installmentAmount,
+    required String customerName,
+    required String itemName,
+    required MessageLanguage language,
+  }) async {
     try {
       await _channel.invokeMethod('sendWhatsApp', {
         'phone': phoneNumber.replaceAll('+', ''),
-        'message':  'Hello $customerName,\n\n'
-      'This is a friendly reminder that your monthly installment for $installmentMonth is now due. '
-      'The payable amount is Rs. ${installmentAmount.toStringAsFixed(0)}.\n\n'
-      'Please make the payment at your earliest convenience.\n\n'
-      'If you have already completed the payment, kindly disregard this message.\n\n'
-      'Thank you for your continued trust.\n\n'
-      'Best regards,\n'
-      'Haris Hussain',
+        'message': _buildMessage(
+          customerName: customerName,
+          installmentMonth: installmentMonth,
+          installmentAmount: installmentAmount,
+          itemName: itemName,
+          language: language,
+        ),
       });
     } on PlatformException catch (e) {
       print("WhatsApp Error: ${e.message}");
     }
   }
 
-  static Future<void> sendSMS({ required String phoneNumber, required String installmentMonth,
-    required double installmentAmount,required String customerName, }) async {
+  static Future<void> sendSMS({
+    required String phoneNumber,
+    required String installmentMonth,
+    required double installmentAmount,
+    required String customerName,
+    required String itemName,
+    required MessageLanguage language,
+  }) async {
     try {
       await _channel.invokeMethod('sendSMS', {
         'phone': phoneNumber,
-        'message':     'Hello $customerName,\n\n'
-            'This is a friendly reminder that your monthly installment for $installmentMonth is now due. '
-            'The payable amount is Rs. ${installmentAmount.toStringAsFixed(0)}.\n\n'
-            'Please make the payment at your earliest convenience.\n\n'
-            'If you have already completed the payment, kindly disregard this message.\n\n'
-            'Thank you for your continued trust.\n\n'
-            'Best regards,\n'
-            'Haris Hussain',
+        'message': _buildMessage(
+          customerName: customerName,
+          installmentMonth: installmentMonth,
+          installmentAmount: installmentAmount,
+          itemName: itemName,
+          language: language,
+        ),
       });
     } on PlatformException catch (e) {
       print("SMS Error: ${e.message}");
     }
   }
-
 }
+

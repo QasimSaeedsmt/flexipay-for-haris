@@ -31,7 +31,7 @@ class _CustomerFormState extends State<CustomerForm> {
         fatherName: _fatherNameController.text.trim(),
         fullAddress: _addressController.text.trim(),
         phoneNumber: _phoneNumberController.text.trim(),
-        totalBalance: double.parse(_totalBalanceController.text.trim()),
+        totalBalance: double.tryParse(_totalBalanceController.text.trim()),
         id: DateTime.now().millisecondsSinceEpoch.toString(), // Use timestamp as ID
       );
 
