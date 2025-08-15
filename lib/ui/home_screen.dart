@@ -263,9 +263,9 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
 actions: [
   ElevatedButton(onPressed: ()async{
-    MessageUtils().sendMessage(number: "03339895695",
+    MessageUtils.sendWhatsAppMessage(
         customerName: "Qasim Saeed",
-        installmentMonth: "August", amount: 4000, context: context);
+        installmentMonth: "August", amount: 4000, context: context,phoneNumber:  "923339895695");
 //     final reminderService = PaymentReminderService();
 //
 //     try {
