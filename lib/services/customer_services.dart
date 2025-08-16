@@ -10,58 +10,46 @@ class CustomerService {
   final CollectionReference _customerRef = FirebaseFirestore.instance
       .collection('customers');
   Future<Map<String, double>> calculateBalanceAndDue(String customerId) async {
-    final customerDoc = await _customerRef.doc(customerId).get();
-    if (!customerDoc.exists) return {'balance': 0.0, 'dueAmount': 0.0};
+    final customer = await getCustomerById(customerId); // You already have this
+    if (customer == null) return {'balance': 0.0, 'dueAmount': 0.0};
 
-    final data = customerDoc.data() as Map<String, dynamic>;
-    final itemsData = data['items'] as List<dynamic>? ?? [];
-    List<ItemModel> items = itemsData
-        .map((map) => ItemModel.fromMap(map as Map<String, dynamic>))
-        .toList();
+    double totalRemaining = 0.0;
+    double totalUnpaidInstallments = 0.0;
 
-    double totalBalance = 0.0;
-    double totalDueAmount = 0.0;
+    if (customer.items != null) {
+      for (final item in customer.items!) {
+        totalRemaining += item.remainingAmount ?? 0.0;
 
-    final now = DateTime.now();
-    final allTxns = await getTransactions(customerId);
+        final start = item.startingMonth ?? item.startDate;
+        final end = item.endingMonth;
+        final perMonth = item.installmentPerMonth ?? 0.0;
 
-    // Build map: paymentsPerItemMonth[itemName][monthKey] = paidAmount
-    final Map<String, Map<String, double>> paymentsPerItemMonth = {};
-    for (var txn in allTxns) {
-      final item = txn.itemName ?? '';
-      final month = txn.transactionMonth ?? '';
-      if (item.isEmpty || month.isEmpty) continue;
-      paymentsPerItemMonth[item] ??= {};
-      paymentsPerItemMonth[item]![month] =
-          (paymentsPerItemMonth[item]![month] ?? 0.0) + (txn.transactionAmount ?? 0.0);
-    }
+        if (start == null || end == null || perMonth <= 0) continue;
 
-    // Helper: months between start and now, inclusive of current month
-    int monthsBetween(DateTime start, DateTime end) {
-      return (end.year - start.year) * 12 + end.month - start.month + 1;
-    }
+        final totalMonths = (end.year - start.year) * 12 + (end.month - start.month) + 1;
+        final current = DateTime.now();
+        final currentMonth = DateTime(current.year, current.month);
 
-    for (var item in items) {
-      totalBalance += item.remainingAmount ?? 0.0;
+        for (int i = 0; i < totalMonths; i++) {
+          final monthDate = DateTime(start.year, start.month + i);
+          if (monthDate.isAfter(currentMonth)) break;
 
-      // Determine months elapsed since item was added
-      final start = item.startDate ?? now;
-      final monthsElapsed = monthsBetween(start, now);
+          final monthKey = DateFormat('yyyy-MM').format(monthDate);
 
-      final installment = item.installmentPerMonth ?? 0.0;
-      final totalDueTillNow = installment * monthsElapsed;
+          final transactions = await getTransactionsForMonth(customerId, monthKey);
+          final paidForThisMonth = transactions
+              .where((txn) => txn.itemName == item.itemName)
+              .fold(0.0, (sum, txn) => sum + (txn.transactionAmount ?? 0.0));
 
-      final paid = paymentsPerItemMonth[item.itemName] != null
-          ? paymentsPerItemMonth[item.itemName]!.values.fold(0.0, (a, b) => a + b)
-          : 0.0;
-
-      final netDue = totalDueTillNow - paid;
-      totalDueAmount += netDue;
+          final unpaid = (perMonth - paidForThisMonth).clamp(0.0, perMonth);
+          totalUnpaidInstallments += unpaid;
+        }
+      }
     }
 
     return {
-      'balance': totalBalance,
-      'dueAmount': totalDueAmount,
+      'balance': totalRemaining,
+      'dueAmount': totalUnpaidInstallments,
     };
   }
 

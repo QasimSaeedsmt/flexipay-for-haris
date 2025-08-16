@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../data/models/customer_model.dart';
 import '../data/models/item_model.dart';
+import '../data/models/transaction_model.dart';
 import '../services/customer_services.dart';
 import 'forms/item_edit_form.dart';
 import 'forms/item_form.dart';
 import 'item_info_dialog.dart';
 
 class ItemsDialog extends StatefulWidget {
+
   final CustomerModel customer;
   final String customerId;
 
@@ -23,12 +26,95 @@ class ItemsDialog extends StatefulWidget {
 
 class _ItemsDialogState extends State<ItemsDialog> {
   late List<ItemModel> items;
+  List<ItemModel> _items = [];
+  final CustomerService _customerService = CustomerService();
+  double _totalBalance = 0.0;
+  Map<String, String> _customerNameMap = {};
 
+  double _totalDue = 0.0;
+  double _totalAdvance = 0.0;
+  double _totalReceivedThisMonth = 0.0;
+  List<TransactionModel> _recentTxns = [];
+  List<Map<String, dynamic>> _monthlyData = [];
+  bool _loading = true;
   @override
   void initState() {
     super.initState();
     items = widget.customer.items ?? [];
+    _fetchItems();
 
+    _loadSummaries();
+
+  }
+  Future<void> _fetchItems() async {
+    CustomerModel? customer = await _customerService.getCustomerById(widget.customerId);
+    if (customer != null && customer.items != null) {
+      setState(() {
+        _items = customer.items!;
+      });
+    }
+  }
+  final CustomerService _svc = CustomerService();
+
+  Future<Map<String, String>> _buildCustomerNameMap() async {
+    final customers = await _svc.getAllCustomers();
+    return { for (var c in customers) c.id!: c.fullName??"" };
+  }
+
+  Future<void> _loadSummaries() async {
+    setState(() => _loading = true);
+
+    final nameMap = await _buildCustomerNameMap();
+    print("Loaded customers count: ${nameMap.length}");  // Add this
+
+    final now = DateTime.now();
+    final monthKey = DateFormat('yyyy-MM').format(now);
+
+    final customers = await _svc.getAllCustomers();
+    List<TransactionModel> allTxns = [];
+    print("Customer list count: ${customers.length}"); // Add this
+
+    double bal = 0, due = 0, adv = 0, recv = 0;
+
+    for (var c in customers) {
+      final balanceData = await _svc.calculateBalanceAndDue(c.id!);
+      final txns = await _svc.getTransactions(c.id!);
+      final monthTxns = await _svc.getTransactionsForMonth(c.id!, monthKey);
+      print("Customer ${c.id} transactions: ${txns.length}");  // Add this
+
+      // Update summary values
+      final balance = balanceData['balance'] ?? 0.0;
+      final dueAmt = balanceData['dueAmount'] ?? 0.0;
+
+      bal += balance;
+      if (dueAmt > 0) {
+        due += dueAmt;
+      } else {
+        adv += -dueAmt;
+      }
+
+      for (var t in monthTxns) {
+        recv += t.transactionAmount ?? 0;
+      }
+
+      // Collect all transactions and assign customerId for later lookup
+      for (var t in txns) {
+        t.customerId = c.id;
+        allTxns.add(t);
+      }
+    }
+
+    allTxns.sort((a, b) => b.timestamp!.compareTo(a.timestamp!));
+
+    setState(() {
+      _customerNameMap = nameMap;
+      _recentTxns = allTxns.take(10).toList();
+      _totalBalance = bal;
+      _totalDue = due;
+      _totalAdvance = adv;
+      _totalReceivedThisMonth = recv;
+      _loading = false;
+    });
   }
 
   void _addItem(ItemModel newItem) {
@@ -59,7 +145,7 @@ class _ItemsDialogState extends State<ItemsDialog> {
             ? const Text("No items yet.")
             : ListView.separated(
           shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+          // physics: const NeverScrollableScrollPhysics(),
           itemCount: items.length,
           separatorBuilder: (_, __) => const Divider(height: 1),
           itemBuilder: (context, index) {
@@ -173,21 +259,17 @@ class _ItemsDialogState extends State<ItemsDialog> {
       ),
       actions: [
         TextButton(
-        onPressed: () async {
-      final newItem = await showModalBottomSheet<ItemModel>(
-        context: context,
-        isScrollControlled: true, // allows full-height bottom sheet
-        builder: (_) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: ItemForm(customerId: widget.customerId),
-        ),
-      );
-      if (newItem != null) {
-        _addItem(newItem);
-      }
-    }
+          onPressed: () async {
+            final didAddItem = await Navigator.push<bool>(
+              context,
+              MaterialPageRoute(builder: (_) => ItemForm(customerId: widget.customerId)),
+            );
+
+            if (didAddItem == true) {
+              await _loadSummaries();  // ✅ Re-fetch updated data
+            }
+
+          }
 ,          child: const Text("Add New Item"),
         ),
         TextButton(

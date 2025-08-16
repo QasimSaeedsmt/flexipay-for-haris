@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flexipay/services/customer_services.dart';
@@ -8,8 +9,10 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;         // 👈 This is the important line
 import 'package:permission_handler/permission_handler.dart';
 import 'package:printing/printing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../auth_screen.dart';
 import '../dialog_utils.dart';
 import '../msg_utils.dart';
 import '../permission_utils.dart';
@@ -48,11 +51,14 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _loading = true);
 
     final nameMap = await _buildCustomerNameMap();
+    print("Loaded customers count: ${nameMap.length}");  // Add this
+
     final now = DateTime.now();
     final monthKey = DateFormat('yyyy-MM').format(now);
 
     final customers = await _svc.getAllCustomers();
     List<TransactionModel> allTxns = [];
+    print("Customer list count: ${customers.length}"); // Add this
 
     double bal = 0, due = 0, adv = 0, recv = 0;
 
@@ -60,6 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final balanceData = await _svc.calculateBalanceAndDue(c.id!);
       final txns = await _svc.getTransactions(c.id!);
       final monthTxns = await _svc.getTransactionsForMonth(c.id!, monthKey);
+      print("Customer ${c.id} transactions: ${txns.length}");  // Add this
 
       // Update summary values
       final balance = balanceData['balance'] ?? 0.0;
@@ -181,7 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('Transaction Receipt',
+              pw.Text('SHAZ Transaction Receipt',
                   style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 20),
               pw.Text('Customer: $customerName', style: pw.TextStyle(fontSize: 16)),
@@ -254,12 +261,42 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+  Future<void> signOut(BuildContext context) async {
+    try {
+      // Sign out from Firebase
+      await FirebaseAuth.instance.signOut();
 
-  @override
+      // Clear "remember_me" preference
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('remember_me', false);
+
+      // Navigate to Login screen
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    } catch (e) {
+      // Optional: Handle error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sign out failed: ${e.toString()}')),
+      );
+    }
+  }  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Dashboard"),
+        title: TextButton(onPressed: (){
+          showDialog(context: context, builder:(context) {
+            return AlertDialog(
+              title: Text("Sign Out"),
+              actions: [TextButton(onPressed: (){
+                signOut(context);
+              }, child: Text("Sign out!")),
+              TextButton(onPressed: (){
+                Navigator.pop(context);
+              }, child: Text("Cancel"))],
+            );
+          },);
+        }, child: Text("SHAZ Dashboard",style: TextStyle(fontSize: 22),)),
         centerTitle: true,
 actions: [
 //   ElevatedButton(onPressed: ()async{
@@ -336,7 +373,7 @@ actions: [
                   ElevatedButton.icon(
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const CustomerListScreen()),
+                      MaterialPageRoute(builder: (_) => const CustomerListScreen()),//this is the main line
                     ).then((_) => _loadSummaries()),
                     icon: const Icon(Icons.group),
                     label: const Text("Customers"),

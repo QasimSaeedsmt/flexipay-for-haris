@@ -13,7 +13,7 @@
         </intent>
     </queries>
     <application
-        android:label="flexipay"
+        android:label="SHAZ Brothers"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

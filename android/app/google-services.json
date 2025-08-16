@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:936644218805:android:9430cc215d7197e8c593fc",
+        "mobilesdk_app_id": "1:936644218805:android:75282d85b02f254fc593fc",
         "android_client_info": {
-          "package_name": "com.example.flexipay"
+          "package_name": "com.flexipay.SHAZ"
         }
       },
       "oauth_client": [],

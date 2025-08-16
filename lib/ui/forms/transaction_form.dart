@@ -215,7 +215,7 @@ class _TransactionFormState extends State<TransactionForm> {
             children: [
               pw.Center(
                 child: pw.Text(
-                  'FlexiPay Receipt',
+                  'SHAZ Receipt',
                   style: pw.TextStyle(
                     fontSize: 20,
                     fontWeight: pw.FontWeight.bold,
@@ -229,10 +229,10 @@ class _TransactionFormState extends State<TransactionForm> {
               _pdfRow('Installment Month:', monthKey),
               _pdfRow('Amount Paid:', 'Rs ${amount.toStringAsFixed(0)}'),
               _pdfRow('Monthly Due:', 'Rs ${due.toStringAsFixed(0)}'),
-              _pdfRow(
-                'Remaining Balance:',
-                'Rs ${(due - (amount + _alreadyPaidForSelectedMonth)).clamp(0, due).toStringAsFixed(0)}',
-              ),
+              // _pdfRow(
+              //   'Remaining Balance:',
+              //   'Rs ${(due - (amount + _alreadyPaidForSelectedMonth)).clamp(0, due).toStringAsFixed(0)}',
+              // ),
               _pdfRow(
                 'Notes:',
                 _notesController.text.trim().isEmpty
@@ -242,8 +242,9 @@ class _TransactionFormState extends State<TransactionForm> {
               _pdfRow('Date:', now),
               _pdfRow(
                 'Balance:',
-                'Rs ${_customer?.totalBalance?.toStringAsFixed(0) ?? '0.00'}',
+                'Rs ${_selectedItem?.remainingAmount?.toStringAsFixed(0) ?? '0'}',
               ),
+
 
               pw.Spacer(),
               pw.SizedBox(height: 24),
@@ -253,7 +254,7 @@ class _TransactionFormState extends State<TransactionForm> {
                 child: pw.Column(
                   children: [
                     pw.Text(
-                      'Thank you for choosing FlexiPay.',
+                      'Thank you for trusting SHAZ.',
                       style: pw.TextStyle(
                         fontSize: 12,
                         fontStyle: pw.FontStyle.italic,

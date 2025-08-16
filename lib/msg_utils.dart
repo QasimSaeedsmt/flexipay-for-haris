@@ -155,42 +155,37 @@
 // }
 import 'package:flutter/services.dart';
 
-import 'package:flutter/services.dart';
-
-import 'package:flutter/services.dart';
-
-import 'package:flutter/services.dart';
-
 enum MessageLanguage { english, urdu, romanUrdu }
 
 class MessageUtils {
-  static const MethodChannel _channel = MethodChannel('com.example.flexipay');
+  static const MethodChannel _channel = MethodChannel("com.flexipay.SHAZ");
 
   static String _buildMessage({
     required String customerName,
-    required String installmentMonth,
-    required double installmentAmount,
+    required String dueMonth,
+    required double amount,
     required String itemName,
     required MessageLanguage language,
   }) {
-    final amount = installmentAmount.toStringAsFixed(0);
+    final roundedAmount = amount.toStringAsFixed(0);
 
     switch (language) {
       case MessageLanguage.urdu:
-        return 'محترم $customerName،\n\n'
-            'آپ کی پراڈکٹ "$itemName" کی $installmentMonth کی ماہانہ قسط بقایا ہے۔ '
-            'ادا کی جانے والی رقم Rs. $amount ہے۔\n\n'
-            'براہ کرم بروقت ادائیگی کو یقینی بنائیں۔\n\n'
-            'اگر آپ ادائیگی کر چکے ہیں تو براہ کرم اس پیغام کو نظر انداز کریں۔\n\n'
+        return 'السلام علیکم ورحمۃ اللہ\n\n'
+            'محترم $customerName،\n\n'
+            'آپ کی پراڈکٹ "$itemName" کی $dueMonth کی ماہانہ قسط واجب الادا ہے۔ '
+            'ادا کی جانے والی رقم Rs. $roundedAmount ہے۔\n\n'
+            'براہ کرم بروقت ادائیگی یقینی بنائیں۔\n\n'
+            'اگر آپ ادائیگی کر چکے ہیں تو اس پیغام کو نظر انداز کریں۔\n\n'
             'آپ کے تعاون کا شکریہ۔\n\n'
             'حارث حسین';
 
       case MessageLanguage.romanUrdu:
         return 'Assalam o Alaikum $customerName,\n\n'
-            'Aap ki product "$itemName" ki $installmentMonth k mahinay ki qist due hai. '
-            'Adaigi ki raqam Rs. $amount hai.\n\n'
-            'Meharbani kar ke bar waqt adaigi ko yaqini banayein.\n\n'
-            'Agar aap ne payment kar di hai to is paigham ko nazar andaz karein.\n\n'
+            'Aap ki product "$itemName" ki $dueMonth ka mahana installment due hai. '
+            'Adaigi ki raqam Rs. $roundedAmount hai.\n\n'
+            'Meharbani se bar waqt adaigi ko yaqini banayein.\n\n'
+            'Agar aap ne payment kar di hai to is paighaam ko nazar andaz kar dein.\n\n'
             'Shukriya,\n'
             'Haris Hussain';
 
@@ -198,7 +193,7 @@ class MessageUtils {
       default:
         return 'Hello $customerName,\n\n'
             'This is a reminder that your monthly installment for the item "$itemName" '
-            'for $installmentMonth is now due. The payable amount is Rs. $amount.\n\n'
+            'for $dueMonth is now due. The payable amount is Rs. $roundedAmount.\n\n'
             'Please make the payment at your earliest convenience.\n\n'
             'If you have already completed the payment, kindly disregard this message.\n\n'
             'Thank you for your cooperation.\n\n'
@@ -209,22 +204,26 @@ class MessageUtils {
 
   static Future<void> sendWhatsAppMessage({
     required String phoneNumber,
-    required String installmentMonth,
-    required double installmentAmount,
+    required String dueMonth,
+    required double amount,
     required String customerName,
     required String itemName,
     required MessageLanguage language,
   }) async {
+    if (phoneNumber.isEmpty || amount <= 0) return;
+
     try {
+      final message = _buildMessage(
+        customerName: customerName,
+        dueMonth: dueMonth,
+        amount: amount,
+        itemName: itemName,
+        language: language,
+      );
+
       await _channel.invokeMethod('sendWhatsApp', {
         'phone': phoneNumber.replaceAll('+', ''),
-        'message': _buildMessage(
-          customerName: customerName,
-          installmentMonth: installmentMonth,
-          installmentAmount: installmentAmount,
-          itemName: itemName,
-          language: language,
-        ),
+        'message': message,
       });
     } on PlatformException catch (e) {
       print("WhatsApp Error: ${e.message}");
@@ -233,26 +232,31 @@ class MessageUtils {
 
   static Future<void> sendSMS({
     required String phoneNumber,
-    required String installmentMonth,
-    required double installmentAmount,
+    required String dueMonth,
+    required double amount,
     required String customerName,
     required String itemName,
     required MessageLanguage language,
   }) async {
+    if (phoneNumber.isEmpty || amount <= 0) return;
+
     try {
+      final message = _buildMessage(
+        customerName: customerName,
+        dueMonth: dueMonth,
+        amount: amount,
+        itemName: itemName,
+        language: language,
+      );
+
       await _channel.invokeMethod('sendSMS', {
         'phone': phoneNumber,
-        'message': _buildMessage(
-          customerName: customerName,
-          installmentMonth: installmentMonth,
-          installmentAmount: installmentAmount,
-          itemName: itemName,
-          language: language,
-        ),
+        'message': message,
       });
     } on PlatformException catch (e) {
       print("SMS Error: ${e.message}");
     }
   }
 }
+
 

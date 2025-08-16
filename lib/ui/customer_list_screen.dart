@@ -371,387 +371,227 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              onTap: () => _showDetails(c),
-                              title: Text(
-                                c.fullName ?? 'Unnamed',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              subtitle: Text(
-                                c.fullAddress ?? '-',
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              trailing: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxWidth:
-                                      MediaQuery.of(context).size.width * 0.45,
-                                ), // adjust this width based on your layout
+                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Customer Info (Name & Address)
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: () => _showDetails(c),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            c.fullName ?? 'Unnamed',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            c.fullAddress ?? '-',
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
 
-                                child: FutureBuilder<Map<String, double>>(
-                                  future: CustomerService()
-                                      .calculateBalanceAndDue(c.id!),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState ==
-                                        ConnectionState.waiting) {
-                                      return const SizedBox(
-                                        width: 50,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      );
-                                    } else if (snapshot.hasError) {
-                                      return const Text('Error');
-                                    } else {
-                                      final data =
-                                          snapshot.data ??
-                                          {'balance': 0.0, 'dueAmount': 0.0};
-                                      final balance = data['balance']!;
-                                      final due = data['dueAmount']!;
-                                      final roundedDue = double.parse(
-                                        due.toStringAsFixed(2),
-                                      );
+                                  const SizedBox(width: 8),
 
-                                      late final String dueLabel;
-                                      late final Color dueColor;
-
-                                      if (roundedDue > 0) {
-                                        dueLabel = 'Due';
-                                        dueColor = Colors.redAccent;
-                                      } else if (roundedDue < 0) {
-                                        dueLabel = 'Advance';
-                                        dueColor = Colors.green;
+                                  // Trailing Section (Balance + Menu)
+                                  FutureBuilder<Map<String, double>>(
+                                    future: CustomerService().calculateBalanceAndDue(c.id!),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState == ConnectionState.waiting) {
+                                        return const SizedBox(
+                                          width: 50,
+                                          height: 24,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        );
+                                      } else if (snapshot.hasError) {
+                                        return const Text('Error');
                                       } else {
-                                        dueLabel = 'Clear';
-                                        dueColor = Colors.grey;
-                                      }
+                                        final data = snapshot.data ?? {'balance': 0.0, 'dueAmount': 0.0};
+                                        final balance = data['balance']!;
+                                        final due = data['dueAmount']!;
+                                        final roundedDue = double.parse(due.toStringAsFixed(2));
 
-                                      return LayoutBuilder(
-                                        builder: (context, constraints) {
-                                          return Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.end,
+                                        late final String dueLabel;
+                                        late final Color dueColor;
+
+                                        if (roundedDue > 0) {
+                                          dueLabel = 'Due';
+                                          dueColor = Colors.redAccent;
+                                        } else if (roundedDue < 0) {
+                                          dueLabel = 'Advance';
+                                          dueColor = Colors.green;
+                                        } else {
+                                          dueLabel = 'Clear';
+                                          dueColor = Colors.grey;
+                                        }
+
+                                        return ConstrainedBox(
+                                          constraints: BoxConstraints(
+                                            maxWidth: MediaQuery.of(context).size.width * 0.48,
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.end,
                                             children: [
-                                              Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.end,
-                                                children: [
-                                                  Flexible(
-                                                    child: Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 8,
-                                                            vertical: 4,
-                                                          ),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                                  children: [
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(
+                                                          horizontal: 8, vertical: 4),
                                                       decoration: BoxDecoration(
-                                                        color: dueColor
-                                                            .withOpacity(0.1),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              6,
-                                                            ),
+                                                        color: dueColor.withOpacity(0.1),
+                                                        borderRadius: BorderRadius.circular(6),
                                                       ),
-                                                      child: Text(
-                                                        '$dueLabel: PKR ${roundedDue.abs().toStringAsFixed(0)}',
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          color: dueColor,
+                                                      child: FittedBox(
+                                                        fit: BoxFit.scaleDown,
+                                                        alignment: Alignment.centerRight,
+                                                        child: Text(
+                                                          '$dueLabel: PKR ${roundedDue.abs().toStringAsFixed(0)}',
+                                                          style: TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight: FontWeight.w600,
+                                                            color: dueColor,
+                                                          ),
                                                         ),
                                                       ),
                                                     ),
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  Flexible(
-                                                    child: Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 8,
-                                                            vertical: 4,
-                                                          ),
+                                                    const SizedBox(height: 4),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(
+                                                          horizontal: 8, vertical: 4),
                                                       decoration: BoxDecoration(
-                                                        color:
-                                                            Colors.blueGrey[50],
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              6,
-                                                            ),
+                                                        color: Colors.blueGrey[50],
+                                                        borderRadius: BorderRadius.circular(6),
                                                       ),
-                                                      child: Text(
-                                                        'Balance: PKR ${balance.toStringAsFixed(0)}',
-                                                        style: const TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                          color: Colors.black87,
+                                                      child: FittedBox(
+                                                        fit: BoxFit.scaleDown,
+                                                        alignment: Alignment.centerRight,
+                                                        child: Text(
+                                                          'Balance: PKR ${balance.toStringAsFixed(0)}',
+                                                          style: const TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight: FontWeight.w500,
+                                                            color: Colors.black87,
+                                                          ),
                                                         ),
                                                       ),
                                                     ),
-                                                  ),
-                                                ],
+                                                  ],
+                                                ),
                                               ),
                                               PopupMenuButton(
+                                                icon: const Icon(Icons.more_vert),
                                                 itemBuilder: (context) {
                                                   return [
                                                     PopupMenuItem(
+                                                      child: _popupItem(
+                                                          icon: Icons.payments,
+                                                          label: 'Receive Installment'),
                                                       onTap: () {
-                                                        final customer =
-                                                            _filteredCustomers[i];
-                                                        // Navigator.pop(context);
+                                                        final customer = _filteredCustomers[i];
                                                         Navigator.push(
                                                           context,
                                                           MaterialPageRoute(
-                                                            builder:
-                                                                (
-                                                                  _,
-                                                                ) => TransactionForm(
-                                                                  customerId:
-                                                                      customer
-                                                                          .id!,
-                                                                ),
+                                                            builder: (_) =>
+                                                                TransactionForm(customerId: customer.id!),
                                                           ),
                                                         );
                                                       },
-                                                      child: SizedBox(
-                                                        width:
-                                                            MediaQuery.of(
-                                                              context,
-                                                            ).size.width *
-                                                            0.5,
-                                                        child: Row(
-                                                          children: [
-                                                            Icon(
-                                                              Icons.payments,
-                                                            ),
-                                                            SizedBox(width: 8),
-                                                            Text(
-                                                              "Receive Installment",
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-
-                                                      ///////////
                                                     ),
-                                                    ////////////
                                                     PopupMenuItem(
+                                                      child: _popupItem(
+                                                          icon: Icons.view_agenda_outlined,
+                                                          label: 'View Items'),
                                                       onTap: () {
-                                                        final customer =
-                                                            _filteredCustomers[i];
-                                                        // Navigator.pop(context);
+                                                        final customer = _filteredCustomers[i];
                                                         showDialog(
                                                           context: context,
-                                                          builder:
-                                                              (
-                                                                _,
-                                                              ) => ItemsDialog(
-                                                                customer:
-                                                                    customer,
-                                                                customerId:
-                                                                    customer
-                                                                        .id!,
-                                                              ),
-                                                        );
-                                                      },
-
-                                                      child: SizedBox(
-                                                        width:
-                                                            MediaQuery.of(
-                                                              context,
-                                                            ).size.width *
-                                                            0.5,
-                                                        child: Row(
-                                                          children: [
-                                                            Icon(
-                                                              Icons
-                                                                  .view_agenda_outlined,
-                                                            ),
-                                                            SizedBox(width: 8),
-                                                            Text("View Items"),
-                                                          ],
-                                                        ),
-                                                      ),
-
-                                                      ///////////
-                                                    ),
-                                                    ////////////
-                                                    PopupMenuItem(
-                                                      onTap: () {
-                                                        final customer =
-                                                            _filteredCustomers[i];
-                                                        Navigator.push(
-                                                          context,
-                                                          MaterialPageRoute(
-                                                            builder:
-                                                                (
-                                                                  context,
-                                                                ) => MessageItemsScreen(
-                                                                  customerId:
-                                                                      customer
-                                                                          .id!,
-                                                                ),
+                                                          builder: (_) => ItemsDialog(
+                                                            customer: customer,
+                                                            customerId: customer.id!,
                                                           ),
                                                         );
                                                       },
-                                                      child: SizedBox(
-                                                        width:
-                                                            MediaQuery.of(
-                                                              context,
-                                                            ).size.width *
-                                                            0.5,
-                                                        child: Row(
-                                                          children: [
-                                                            Icon(
-                                                              Icons
-                                                                  .message_outlined,
-                                                            ),
-                                                            SizedBox(width: 8),
-                                                            Text(
-                                                              "Send Reminder Message",
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-
-                                                      ///////////
                                                     ),
-                                                    ////////////
                                                     PopupMenuItem(
+                                                      child: _popupItem(
+                                                          icon: Icons.message_outlined,
+                                                          label: 'Send Reminder Message'),
                                                       onTap: () {
-                                                        final customer =
-                                                            _filteredCustomers[i];
-                                                        // Navigator.pop(context);
+                                                        final customer = _filteredCustomers[i];
                                                         Navigator.push(
                                                           context,
                                                           MaterialPageRoute(
-                                                            builder:
-                                                                (
-                                                                  _,
-                                                                ) => AdjustmentForm(
-                                                                  customerId:
-                                                                      customer
-                                                                          .id!,
-                                                                ),
+                                                            builder: (_) =>
+                                                                MessageItemsScreen(customerId: customer.id!),
                                                           ),
                                                         );
                                                       },
-
-                                                      child: SizedBox(
-                                                        width:
-                                                            MediaQuery.of(
-                                                              context,
-                                                            ).size.width *
-                                                            0.5,
-                                                        child: Row(
-                                                          children: [
-                                                            Icon(Icons.adjust),
-                                                            SizedBox(width: 8),
-                                                            Text("Adjustments"),
-                                                          ],
-                                                        ),
-                                                      ),
-
-                                                      ///////////
                                                     ),
-                                                    ////////////
                                                     PopupMenuItem(
+                                                      child: _popupItem(
+                                                          icon: Icons.adjust, label: 'Adjustments'),
                                                       onTap: () {
-                                                        final customer =
-                                                            _filteredCustomers[i];
-                                                        // Navigator.pop(context);
+                                                        final customer = _filteredCustomers[i];
                                                         Navigator.push(
                                                           context,
                                                           MaterialPageRoute(
-                                                            builder:
-                                                                (
-                                                                  _,
-                                                                ) => EditCustomerScreen(
-                                                                  customer:
-                                                                      customer,
-                                                                ),
+                                                            builder: (_) =>
+                                                                AdjustmentForm(customerId: customer.id!),
                                                           ),
                                                         );
                                                       },
-                                                      child: SizedBox(
-                                                        width:
-                                                            MediaQuery.of(
-                                                              context,
-                                                            ).size.width *
-                                                            0.5,
-                                                        child: Row(
-                                                          children: [
-                                                            Icon(Icons.edit),
-                                                            SizedBox(width: 8),
-                                                            Text(
-                                                              "Edit Customer",
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-
-                                                      ///////////
                                                     ),
-                                                    ////////////
                                                     PopupMenuItem(
+                                                      child:
+                                                      _popupItem(icon: Icons.edit, label: 'Edit Customer'),
                                                       onTap: () {
-                                                        final customer =
-                                                            _filteredCustomers[i];
-                                                        // Navigator.pop(context);
-                                                        _deleteCustomer(
-                                                          customer,
+                                                        final customer = _filteredCustomers[i];
+                                                        Navigator.push(
+                                                          context,
+                                                          MaterialPageRoute(
+                                                            builder: (_) =>
+                                                                EditCustomerScreen(customer: customer),
+                                                          ),
                                                         );
                                                       },
-                                                      child: SizedBox(
-                                                        width:
-                                                            MediaQuery.of(
-                                                              context,
-                                                            ).size.width *
-                                                            0.5,
-                                                        child: Row(
-                                                          children: [
-                                                            Icon(
-                                                              Icons
-                                                                  .delete_forever,
-                                                            ),
-                                                            SizedBox(width: 8),
-                                                            Text(
-                                                              "Delete Customer",
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-
-                                                      ///////////
                                                     ),
-
-                                                    ////////////
+                                                    PopupMenuItem(
+                                                      child: _popupItem(
+                                                          icon: Icons.delete_forever,
+                                                          label: 'Delete Customer'),
+                                                      onTap: () {
+                                                        final customer = _filteredCustomers[i];
+                                                        _deleteCustomer(customer);
+                                                      },
+                                                    ),
                                                   ];
                                                 },
                                               ),
                                             ],
-                                          );
-                                        },
-                                      );
-                                    }
-                                  },
-                                ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ],
                               ),
                             ),
                           );
@@ -772,4 +612,19 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
       ),
     );
   }
+}
+Widget _popupItem({required IconData icon, required String label}) {
+  return Row(
+    children: [
+      Icon(icon, size: 20),
+      const SizedBox(width: 8),
+      Flexible(
+        child: Text(
+          label,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 14),
+        ),
+      ),
+    ],
+  );
 }
