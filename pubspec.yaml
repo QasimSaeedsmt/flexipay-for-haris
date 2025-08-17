@@ -42,9 +42,20 @@ dependencies:
   pdf:
   printing:
   fl_chart:
+  url_launcher:
+  permission_handler:
+  font_awesome_flutter:
+  firebase_auth:
+  shared_preferences:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/png.png"
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
